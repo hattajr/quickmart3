@@ -1,0 +1,17 @@
+[project]
+name = "quickmart3"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "aiosqlite>=0.21.0",
+    "fastapi>=0.121.3",
+    "jinja2>=3.1.6",
+    "loguru>=0.7.3",
+    "pydantic>=2.12.4",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.38.0",
+]
+
+[tool.uv.sources]
+db = { path = "./app/db" }
+

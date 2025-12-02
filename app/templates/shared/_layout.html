@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>GIVE ME NAME</title>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-response-targets@2.0.2"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0-alpha4/dist/htmx.min.js"
+        integrity="sha384-PDdj2nduKy1q0jypHdCWFooDDtqv/oZIRlt2KvIJ6i1OHNnAJ5vCYA1Gl6SLNtsv"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css" />
+    <script type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
+
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+
+</head>
+
+<style>
+    .search-result-item::part(base) {
+        align-items: center;
+    }
+
+    .search-result-item img {
+        width: 60px;
+        aspect-ratio: 3 / 4;
+        object-fit: cover;
+        border-radius: 5px;
+        margin-right: 10px;
+    }
+
+    .search-result-container {
+        max-height: 50vh;
+        overflow: auto;
+        border: 1px solid #ddd;
+        display: none;
+    }
+
+    .selected-item::part(base) {
+        align-items: center;
+    }
+
+    .selected-item img {
+        width: 80px;
+        aspect-ratio: 3 / 4;
+        object-fit: cover;
+        border-radius: 5px;
+        margin-right: 10px;
+    }
+
+
+
+
+
+</style>
+
+<body>
+
+    <div class="main_content">
+        {% block main_content %}{% endblock %}
+    </div>
+
+    <footer>
+    </footer>
+
+</body>
+
+</html>

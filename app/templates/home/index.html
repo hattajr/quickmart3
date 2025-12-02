@@ -1,0 +1,64 @@
+{% extends "shared/_layout.html" %}
+{% block main_content %}
+
+<sl-input id="search" hx-get="/search" hx-target="#search-result-container" hx-swap="innerHTML"
+  hx-trigger="keyup changed delay:300ms" name="q" placeholder="Search..." clearable placeholder="Type something" _="
+    on 'sl-input'
+      if my value.trim() != '' 
+        set #search-result-container.style.display to 'block' 
+      else 
+        set #search-result-container.style.display to 'none'
+      end
+
+    on click from document
+      if event.target is not in me and event.target is not in #search-result-container
+        log 'Click outside search input and results'
+        set #search-result-container.style.display to 'none'
+        set me.value to ''
+      end
+    end
+  ">
+  <sl-icon name="search" slot="prefix"></sl-icon>
+</sl-input>
+
+<sl-menu id="search-result-container" class="search-result-container"></sl-menu>
+
+
+
+<!-- <sl-menu>
+  <sl-menu-item class="search-menu-item">
+      <img
+        slot="prefix"
+        src="https://images.unsplash.com/photo-1547191783-94d5f8f6d8b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=80"
+        alt="A kitten walks towards camera on top of pallet." />
+      kitten
+  </sl-menu-item>
+  <sl-menu-item class="search-menu-item">
+      <img
+        slot="prefix"
+        src="https://images.unsplash.com/photo-1547191783-94d5f8f6d8b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=80"
+        alt="A kitten walks towards camera on top of pallet." />
+      kitten
+  </sl-menu-item>
+</sl-menu> -->
+
+
+<!-- <sl-drawer label="Drawer" class="drawer-overview">
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  <sl-button slot="footer" variant="primary">Close</sl-button>
+</sl-drawer>
+
+<sl-button>Open Drawer</sl-button>
+
+<script>
+  const drawer = document.querySelector('.drawer-overview');
+  const openButton = drawer.nextElementSibling;
+  const closeButton = drawer.querySelector('sl-button[variant="primary"]');
+
+  openButton.addEventListener('click', () => drawer.show());
+  closeButton.addEventListener('click', () => drawer.hide());
+</script>
+ -->
+
+
+{% endblock %}

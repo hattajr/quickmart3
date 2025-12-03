@@ -42,6 +42,7 @@ with db:
 
     items = [
         ("Apple", 0.5, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
+        ("Bananananannananananannananananan", 0.3, None),
         ("Banana", 0.3, None),
         ("Orange", 0.7, None),
         ("Grapes", 2.0, None),
@@ -85,20 +86,25 @@ async def search(request: Request, q: str):
     else:
         response = ''.join(
             f"""
-            <div
-            hx-get="/items/{row['id']}"
-            hx-target="#cart-container"
-            hx-swap="beforeend"
-            class="search-result-item"
-            >
-                <img
-                    src="{row['image_url'] or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
-                    alt="{row['name']}" />
-                {row['name']}
+          <div hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
+            class="flex border-2 rounded-md border-gray-900 h-16 bg-white">
+            <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
+              <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"}
+                alt="Apple" class="object-cover w-full h-full rounded-md" />
             </div>
+            <div class="flex-1 p-2 flex items-center min-w-0">
+              <div class="truncate w-full">
+                {row['name']}
+              </div>
+            </div>
+          </div>
+
             """
             for row in results
         )
+                # <img
+                #     src="{row['image_url'] or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
+                #     alt="{row['name']}" />
 
     return HTMLResponse(content=response)
 
@@ -112,13 +118,41 @@ async def read_item(item_id: int):
         if row is None:
             raise HTTPException(status_code=404, detail="Item not found")
         response = f"""
-            <div class="cart-item">
-                    <img
-                        src="{row['image_url'] or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
-                        alt="{row['name']}" />
-                <h2>{row['name']}</h2>
-                <span class="price">${row['price']:.2f}</span>
+    <div id="cart-item-{row['id']}"
+      class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] h-24 flex overflow-hidden bg-white">
+      <div class="w-20 flex-shrink-0 bg-gray-200">
+        <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"} alt="apple"
+          class="w-full h-full object-cover">
+      </div>
+      <div class="flex-1 flex flex-col justify-between p-3 min-w-0">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-bold truncate">
+                {row['name']}
             </div>
+            <div class="text-xs text-gray-600 mt-0.5">₩10,000/pcs</div>
+          </div>
+          <button class="text-gray-500 hover:text-red-600 flex-shrink-0"
+          _="on click remove #cart-item-{row['id']}">
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <button
+              class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
+              <span class="material-symbols-outlined text-base">remove</span>
+            </button>
+            <span class="text-sm w-6 text-center font-medium">3</span>
+            <button
+              class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
+              <span class="material-symbols-outlined text-base">add</span>
+            </button>
+          </div>
+          <div class="text-base font-bold">₩30,000</div>
+        </div>
+      </div>
+    </div>
         """
     return HTMLResponse(content=response)
 

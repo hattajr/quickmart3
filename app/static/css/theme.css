@@ -7,7 +7,7 @@
     --box-shadow-large: 10px 10px 0px var(--color-border);
     --box-shadow-medium: 4px 4px 0px var(--color-border);
 
-    --border-stroke-large: 3px solid var(--color-border);
+    --border-stroke-large: 3px solid var(--color-border); 
     --border-stroke-medium: 1.5px solid var(--color-border);
 
     --border-radius-large: 1rem;

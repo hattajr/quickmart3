@@ -1,62 +1,102 @@
 {% extends "shared/_layout.html" %}
 {% block main_content %}
 
-<div class="outer-box">
-  <div class="search-wrapper">
-    <div class="search-container">
-      <div class="search-box">
-        <input class="search-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-          hx-indicator="#loading" type="search" hx-get="/search" hx-target="#search-result-container"
-          hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms" name="q" placeholder="Search..." clearable _="
+
+
+<div class="relative max-w-4xl mx-auto  p-4">
+  <div class="relative border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 z-10">
+    <div class="flex gap-2.5 mb-2.5">
+      <div class="flex-1 relative">
+        <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 border-gray-300 bg-sky-50">
+          <input class="p-2 w-full border-none text-sm" autocomplete="off" autocorrect="off" autocapitalize="off"
+            spellcheck="false" hx-indicator="#loading" type="search" hx-get="/search"
+            hx-target="#search-result-container" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms" name="q"
+            placeholder="Search..." clearable _="
     on input
       if my value.trim() != '' 
-        set #search-result-container.style.display to 'block' 
+        remove .hidden from #search-result-container
       else 
-        set #search-result-container.style.display to 'none'
+        add .hidden to #search-result-container
       end
 
     on click from document
       if event.target is not in me and event.target is not in #search-result-container
-        log 'Click outside search input and results'
-        set #search-result-container.style.display to 'none'
+        add .hidden to #search-result-container
         set me.value to ''
       end
     end
   " />
+        </div>
+
+        <div id="search-result-container"
+          class="hidden mt-2 p-1.5 flex flex-col gap-2 absolute border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 max-h-70 w-full overflow-y-auto z-20 bg-sky-50">
+
+          <div id="loading">loading...</div>
+        </div>
+
       </div>
 
-      <div id="search-result-container" class="search-result-container">
-        <div id="loading">loading</div>
+
+      <div id="search-camera"
+        class="w-10 flex flex-row gap2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer">
+      </div>
+
+    </div>
+
+    <div class="flex flex-wrap gap-1 max-w-sm">
+      <div class="flex items-center gap-1 py-1 px-2.5 bg-gray-100 border border-gray-300 text-sm">
+        <span>Apple</span>
+      </div>
+      <div class="flex items-center gap-1 py-1 px-2.5 bg-gray-100 border border-gray-300 text-sm">
+        <span class="truncate max-w-[6rem]">Banananananannanananana</span>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div id="cart-container"
+    class="flex flex-col gap-2 border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4 h-120 p-2 overflow-y-auto">
+    <div id="cart-item-1" class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] h-24 flex overflow-hidden bg-white">
+      <div class="w-20 flex-shrink-0 bg-gray-200">
+        <img src="https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&amp;w=1287&amp;auto=format&amp;fit=crop&amp;ixlib=rb-4.1.0&amp;ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="apple" class="w-full h-full object-cover">
+      </div>
+      <div class="flex-1 flex flex-col justify-between p-3 min-w-0">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-bold truncate">
+                Apple
+            </div>
+            <div class="text-xs text-gray-600 mt-0.5">₩10,000/pcs</div>
+          </div>
+          <button class="text-gray-500 hover:text-red-600 flex-shrink-0" _="on click remove #cart-item-1">
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <button class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
+              <span class="material-symbols-outlined text-base">remove</span>
+            </button>
+            <span class="text-sm w-6 text-center font-medium">3</span>
+            <button class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
+              <span class="material-symbols-outlined text-base">add</span>
+            </button>
+          </div>
+          <div class="text-base font-bold">₩30,000</div>
+        </div>
       </div>
     </div>
 
-    <div class="search-camera"></div>
   </div>
-  <div class="favorite-items">
-    <div class="favorite-item">Banana</div>
-    <div class="favorite-item">Apple</div>
+
+
+  <div id="checkout-container" class="border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4">
+
+    <p>Items: 5</p>
+    <p>Total: 10000</p>
+    <button id="checkout-button" hx-post="/checkout" hx-target="#cart-container" hx-swap="innerHTML">Finish</button>
   </div>
-</div>
-
-
-<div id="cart-container" class="cart-container">
-              <div class="cart-item">
-                    <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"
-                        alt="apple" />
-                <div class="cart-item-details">
-                  <h1>Test long name this too much</h2>
-                  <h2>₩10000</h3>
-                </div>
-            </div>
-</div>
-
-
-<div id="checkout-container" class="checkout-container">
-  <p>Items: 5</p>
-  <p>Total: 10000</p>
-  <button id="checkout-button" hx-post="/checkout" hx-target="#cart-container" hx-swap="innerHTML">Finish</button>
-</div>
 </div>
 
 

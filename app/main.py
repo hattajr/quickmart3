@@ -85,17 +85,17 @@ async def search(request: Request, q: str):
     else:
         response = ''.join(
             f"""
-            <sl-menu-item 
+            <div
             hx-get="/items/{row['id']}"
-            hx-target="#selected-item-container"
+            hx-target="#cart-container"
             hx-swap="beforeend"
-            class="search-result-item">
+            class="search-result-item"
+            >
                 <img
-                    slot="prefix"
                     src="{row['image_url'] or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
                     alt="{row['name']}" />
                 {row['name']}
-            </sl-menu-item>
+            </div>
             """
             for row in results
         )
@@ -112,15 +112,13 @@ async def read_item(item_id: int):
         if row is None:
             raise HTTPException(status_code=404, detail="Item not found")
         response = f"""
-            <sl-menu-item 
-            disable
-            class="search-result-item">
-                <img
-                    slot="prefix"
-                    src="{row['image_url'] or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
-                    alt="{row['name']}" />
-                {row['name']}
-            </sl-menu-item>
+            <div class="cart-item">
+                    <img
+                        src="{row['image_url'] or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
+                        alt="{row['name']}" />
+                <h2>{row['name']}</h2>
+                <span class="price">${row['price']:.2f}</span>
+            </div>
         """
     return HTMLResponse(content=response)
 

@@ -1,9 +1,14 @@
 {% extends "shared/_layout.html" %}
 {% block main_content %}
 
-<sl-input id="search" hx-get="/search" hx-target="#search-result-container" hx-swap="innerHTML"
-  hx-trigger="keyup changed delay:300ms" name="q" placeholder="Search..." clearable placeholder="Type something" _="
-    on 'sl-input'
+<div class="outer-box">
+  <div class="search-wrapper">
+    <div class="search-container">
+      <div class="search-box">
+        <input class="search-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          hx-indicator="#loading" type="search" hx-get="/search" hx-target="#search-result-container"
+          hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms" name="q" placeholder="Search..." clearable _="
+    on input
       if my value.trim() != '' 
         set #search-result-container.style.display to 'block' 
       else 
@@ -17,11 +22,43 @@
         set me.value to ''
       end
     end
-  ">
-  <sl-icon name="search" slot="prefix"></sl-icon>
-</sl-input>
+  " />
+      </div>
 
-<sl-menu id="search-result-container" class="search-result-container"></sl-menu>
+      <div id="search-result-container" class="search-result-container">
+        <div id="loading">loading</div>
+      </div>
+    </div>
+
+    <div class="search-camera"></div>
+  </div>
+  <div class="favorite-items">
+    <div class="favorite-item">Banana</div>
+    <div class="favorite-item">Apple</div>
+  </div>
+</div>
+
+
+<div id="cart-container" class="cart-container">
+              <div class="cart-item">
+                    <img
+                        src="https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"
+                        alt="apple" />
+                <div class="cart-item-details">
+                  <h1>Test long name this too much</h2>
+                  <h2>₩10000</h3>
+                </div>
+            </div>
+</div>
+
+
+<div id="checkout-container" class="checkout-container">
+  <p>Items: 5</p>
+  <p>Total: 10000</p>
+  <button id="checkout-button" hx-post="/checkout" hx-target="#cart-container" hx-swap="innerHTML">Finish</button>
+</div>
+</div>
+
 
 
 

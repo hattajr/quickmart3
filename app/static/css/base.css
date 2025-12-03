@@ -1,0 +1,20 @@
+html,
+body {
+    font-size: 62.5%;
+    background: var(--color-bg);
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+* {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+
+.main_content {
+    width: clamp(320px, 90%, 768px);
+    margin: 0 auto;
+    position: relative;
+    box-sizing: border-box;
+}

@@ -5,11 +5,13 @@ import uvicorn
 import aiosqlite
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import sqlite3
 from starlette.middleware.sessions import SessionMiddleware
+from fastapi.templating import Jinja2Templates
+
 
 
 logger.remove()
@@ -42,22 +44,22 @@ with db:
     )
 
     items = [
-        ("Apple", 0.5, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
-        ("Bananananannananananannananananan", 0.3, None),
-        ("Banana", 0.3, None),
-        ("Orange", 0.7, None),
-        ("Grapes", 2.0, None),
-        ("Watermelon", 3.5, None),
-        ("Pineapple", 2.5, None),
-        ("Mango", 1.5, None),
-        ("Strawberry", 4.0, None),
-        ("Blueberry", 5.0, None),
-        ("Kiwi", 1.2, None),
-        ("Peach", 1.8, None),
-        ("Cherry", 6.0, None),
-        ("Papaya", 2.2, None),
-        ("Plum", 1.6, None),
-        ("Coconut", 3.0, None)
+        ("Apple", 5000, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
+        ("Bananananannananananannananananan", 3000, None),
+        ("Banana", 3000, None),
+        ("Orange", 7000, None),
+        ("Grapes", 2000, None),
+        ("Watermelon", 3500, None),
+        ("Pineapple", 2500, None),
+        ("Mango", 1500, None),
+        ("Strawberry", 4000, None),
+        ("Blueberry", 5000, None),
+        ("Kiwi", 1200, None),
+        ("Peach", 1800, None),
+        ("Cherry", 6000, None),
+        ("Papaya", 2200, None),
+        ("Plum", 1600, None),
+        ("Coconut", 3000, None)
     ]
     cursor.executemany("INSERT INTO items (name, price, image_url) VALUES (?, ?, ?)", items)
 
@@ -65,6 +67,10 @@ db.commit()
 # DEBUG: End in-memory database
 
 
+def get_total(session):
+    total_qty = sum(item['qty'] for item in session.values())
+    total_price = sum(item['price'] * item['qty'] for item in session.values())
+    return total_qty, total_price
 
 @app.get("/")
 def home_page(request: Request):
@@ -75,26 +81,32 @@ def home_page(request: Request):
 
 @app.get("/search")
 async def search(request: Request, q: str):
-    print(f"Searching for: {q}")
+    logger.debug(f"Search query: {q}")
     with db:
         cursor = db.cursor()
         cursor.execute("SELECT id, name, image_url FROM items WHERE name LIKE ?", (f"%{q}%",))
         results = cursor.fetchall()
 
-        for row in results:
-          if row['id'] in request.session:
-            logger.debug(f"Item {row['id']} found in session")
-            del results[results.index(row)]
-    if not results  :
-        response = '<sl-menu-item disabled>No results found</sl-menu-item>'
+        # for row in results:
+        #   if str(row['id']) in request.session.keys():
+        #     logger.debug(f"Item {row['id']} already in cart, skipping.")
 
+
+    if not results  :
+        response = '<div disabled>No results found</div>'
+    
     else:
         response = ''.join(
             f"""
           <div id="search-item-{row['id']}"
           hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
-            class="flex border-2 rounded-md border-gray-900 h-16 bg-white"
-            _ = "on click remove me"
+            class="flex border-2 rounded-md border-gray-900 h-16 bg-white {'pointer-events-none opacity-50 cursor-not-allowed' if str(row['id']) in request.session else ''}"
+            _ = "
+            on click
+              add .hidden to #search-result-container
+              set #search-input's value to ''
+              focus() to #search-input
+            "
             >
             <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
               <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"}
@@ -106,9 +118,8 @@ async def search(request: Request, q: str):
               </div>
             </div>
           </div>
-
             """
-            for row in results if row
+            for row in results
         )
     return HTMLResponse(content=response)
 
@@ -126,50 +137,19 @@ async def read_item(request:Request, item_id: int):
         row = request.session[str(row['id'])]
         logger.debug(f"Session after adding item: {request.session}")
 
-          
-        response = f"""
-    <div id="cart-item-{row['id']}"
-      class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] h-24 flex overflow-hidden bg-white"
-      >
-      <div class="w-20 flex-shrink-0 bg-gray-200">
-        <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"} alt="apple"
-          class="w-full h-full object-cover">
-      </div>
-      <div class="flex-1 flex flex-col justify-between p-3 min-w-0">
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-bold truncate">
-                {row['name']}
-            </div>
-            <div class="text-xs text-gray-600 mt-0.5">₩10,000/pcs</div>
-          </div>
-          <button class="text-gray-500 hover:text-red-600 flex-shrink-0"
-          _="
-          on click  fetch /remove/{row['id']} then remove #cart-item-{row['id']}
-          ">
-            <span class="material-symbols-outlined text-xl">close</span>
-          </button>
-        </div>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5">
-            <button
-              class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
-              <span class="material-symbols-outlined text-base">remove</span>
-            </button>
-            <span class="text-sm w-6 text-center font-medium">{row['qty']}</span>
-            <button
-              class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
-              <span class="material-symbols-outlined text-base">add</span>
-            </button>
-          </div>
-          <div class="text-base font-bold">₩30,000</div>
-        </div>
-      </div>
-    </div>
-        """
-    return HTMLResponse(content=response)
+        total_qty, total_price = get_total(request.session)
+        return templates.TemplateResponse("home/_cart_item.html", {
+            "request": request,
+            "row": row,
+            "price": f"{int(row['price']):,}",
+            "sub_total": f"{int(row['price'] * row['qty']):,}",
+            "total_qty": total_qty,
+            "total_price": f"{int(total_price):,}"
+        })
 
-@app.get("/remove/{item_id}")
+          
+
+@app.delete("/remove/{item_id}")
 async def remove_item(request: Request, item_id: int):
     item_key = str(item_id)
     if item_key in request.session:
@@ -178,11 +158,64 @@ async def remove_item(request: Request, item_id: int):
     else:
         logger.debug(f"Item {item_id} not found in session")
     logger.debug(f"Session after removal: {request.session}")
-    return None
+    total_qty, total_price = get_total(request.session)
+    return templates.TemplateResponse("home/_total.html", {
+        "request": request,
+        "total_qty": total_qty,
+        "total_price": f"{int(total_price):,}"
+    })
+
+
+@app.get("/decrease/{item_id}")
+async def decrease_item(request: Request, item_id: int):
+    # minumum quantity is 1
+    item_key = str(item_id)
+    if item_key in request.session:
+        if request.session[item_key]['qty'] > 1:
+            request.session[item_key]['qty'] -= 1
+            logger.debug(f"Decreased quantity of item {item_id} to {request.session[item_key]['qty']}")
+    else:
+        logger.debug(f"Item {item_id} not found in session")
+    logger.debug(f"Session after decrease: {request.session}")
+
+    row = request.session[item_key]
+    total_qty, total_price = get_total(request.session)
+    return templates.TemplateResponse("home/_sub_total.html", {
+        "request": request,
+        "row": row,
+        "qty": row['qty'],
+        "sub_total": f"{int(row['price'] * row['qty']):,}",
+        "total_qty": total_qty,
+        "total_price": f"{int(total_price):,}"
+    })
+
+@app.get("/increase/{item_id}")
+async def increase_item(request: Request, item_id: int):
+    item_key = str(item_id)
+    if item_key in request.session:
+        request.session[item_key]['qty'] += 1
+        logger.debug(f"Increased quantity of item {item_id} to {request.session[item_key]['qty']}")
+    logger.debug(f"Session after increase: {request.session}")
+    row = request.session[item_key]
+    total_qty, total_price = get_total(request.session)
+    return templates.TemplateResponse("home/_sub_total.html", {
+        "request": request,
+        "row": row,
+        "qty": row['qty'],
+        "sub_total": f"{int(row['price'] * row['qty']):,}",
+        "total_qty": total_qty,
+        "total_price": f"{int(total_price):,}"
+    })
+      
+@app.post("/finish")
+async def finish_checkout(request: Request):
+    logger.debug("Checkout finished, session cleared.")
+    logger.debug(f"Session after checkout: {request.session}")
+    response = Response(status_code=200)
+    response.headers["HX-Redirect"] = "/"
+    return response
+
 if __name__ == "__main__":
-
-
-
     uvicorn.run(
         "main:app",
         host=os.getenv("APP_HOST", "0.0.0.0"),

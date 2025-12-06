@@ -1,0 +1,17 @@
+
+        <div id="cart-item-qty-{{row.id}}" class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <button
+            hx-get="/decrease/{{row.id}}" hx-target="#cart-item-qty-{{row.id}}" hx-swap="outerHTML"
+              class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
+              <span class="material-symbols-outlined text-base">remove</span>
+            </button>
+            <span id="qty-{{row.id}}" class="text-sm w-6 text-center font-medium">{{row.qty}}</span>
+            <button
+            hx-get="/increase/{{row.id}}" hx-target="#cart-item-qty-{{row.id}}" hx-swap="outerHTML"
+              class="w-6 h-6 flex items-center justify-center border border-gray-900 rounded hover:bg-gray-100">
+              <span class="material-symbols-outlined text-base">add</span>
+            </button>
+          </div>
+          <div class="text-base font-bold">₩{{sub_total}}</div>
+        </div>

@@ -14,6 +14,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from pprint import pprint
 import secrets
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 
 
@@ -47,6 +49,7 @@ with db:
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT NOT NULL,
         item_id INTEGER NOT NULL REFERENCES items(id),
+        item_name TEXT NOT NULL,
         price_at_purchase REAL NOT NULL,
         quantity INTEGER NOT NULL,
         total_price REAL NOT NULL,
@@ -83,18 +86,37 @@ with db:
 db.commit()
 # DEBUG: End in-memory database
 
+def get_pg_db():
+    conn = psycopg2.connect(
+        host=os.getenv("PG_HOST", "localhost"),
+        port=os.getenv("PG_PORT", "5432"),
+        database=os.getenv("PG_DATABASE", "quickmart"),
+        user=os.getenv("PG_USER", "postgres"),
+        password=os.getenv("PG_PASSWORD", "password"),
+        cursor_factory=RealDictCursor
+    )
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+
+
+
 
 def get_total(session):
     total_qty = sum(item['qty'] for item in session['cart'].values())
     total_price = sum(item['price'] * item['qty'] for item in session['cart'].values())
     return total_qty, total_price
 
-def insert_transaction(session_id: str, item_id: int, price_at_purchase: float, quantity: int, total_price: float):
+def insert_transaction(session_id: str, item_id: int, item_name: str, price_at_purchase: float, quantity: int, total_price: float):
     with db:
         cursor = db.cursor()
+
         cursor.execute(
-            "INSERT INTO sold_items (session_id, item_id, price_at_purchase, quantity, total_price) VALUES (?, ?, ?, ?, ?)",
-            (session_id, item_id, price_at_purchase, quantity, total_price)
+            "INSERT INTO sold_items (session_id, item_id, item_name, price_at_purchase, quantity, total_price) VALUES (?, ?, ?, ?, ?, ?)",
+            (session_id, item_id, item_name, price_at_purchase, quantity, total_price)
         )
         db.commit()
 
@@ -121,52 +143,61 @@ def home_page(request: Request):
 @app.get("/search")
 async def search(request: Request, q: str):
     logger.debug(f"Search query: {q}")
-    with db:
-        cursor = db.cursor()
-        cursor.execute("SELECT id, name, image_url FROM items WHERE name LIKE ?", (f"%{q}%",))
+    # with db:
+    #     cursor = db.cursor()
+    #     cursor.execute("SELECT id, name, image_url FROM items WHERE name LIKE ?", (f"%{q}%",))
+    #     results = cursor.fetchall()
+    for conn in get_pg_db():
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, image_url FROM products WHERE name ILIKE %s", (f"%{q}%",))
         results = cursor.fetchall()
-    if not results  :
-        response = '<div disabled>No results found</div>'
-    
-    else:
-        response = ''.join(
-            f"""
-          <div id="search-item-{row['id']}"
-          hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
-            class="flex border-2 rounded-md border-gray-900 h-16 bg-white"
-            _ = "
-            on load
-                if #cart-item-{row['id']} is in document
-                  add .pointer-events-none to me
-                  add .opacity-50 to me
-                  add .cursor-not-allowed to me
-                end
-            on click
-              add .hidden to #search-result-container
-              set #search-input's value to ''
-              focus() to #search-input
-            "
-            >
-            <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
-              <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"}
-                alt="Apple" class="object-cover w-full h-full rounded-md" />
+
+        if not results:
+            response = '<div disabled>No results found</div>'
+
+        else:
+            response = ''.join(
+                f"""
+            <div id="search-item-{row['id']}"
+            hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
+                class="flex border-2 rounded-md border-gray-900 h-16 bg-white"
+                _ = "
+                on load
+                    if #cart-item-{row['id']} is in document
+                    add .pointer-events-none to me
+                    add .opacity-50 to me
+                    add .cursor-not-allowed to me
+                    end
+                on click
+                add .hidden to #search-result-container
+                set #search-input's value to ''
+                focus() to #search-input
+                "
+                >
+                <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
+                <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"}
+                    alt="Apple" class="object-cover w-full h-full rounded-md" />
+                </div>
+                <div class="flex-1 p-2 flex items-center min-w-0">
+                <div class="truncate w-full">
+                    {row['name']}
+                </div>
+                </div>
             </div>
-            <div class="flex-1 p-2 flex items-center min-w-0">
-              <div class="truncate w-full">
-                {row['name']}
-              </div>
-            </div>
-          </div>
-            """
-            for row in results
-        )
-    return HTMLResponse(content=response)
+                """
+                for row in results
+            )
+        return HTMLResponse(content=response)
 
 @app.get("/items/{item_id}")
 async def read_item(request:Request, item_id: int):
-    with db:
-        cursor = db.cursor()
-        cursor.execute("SELECT id, name, price, image_url FROM items WHERE id = ?", (item_id,))
+    # with db:
+    #     cursor = db.cursor()
+    #     cursor.execute("SELECT id, name, price, image_url FROM items WHERE id = ?", (item_id,))
+    #     row = cursor.fetchone()
+    for conn in get_pg_db():
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, price, image_url FROM products WHERE id = %s", (item_id,))
         row = cursor.fetchone()
 
         if row is None:
@@ -251,9 +282,8 @@ async def favorite_items(request: Request):
     with db:
         cursor = db.cursor()
         cursor.execute("""
-            SELECT item_id, name, quantity FROM sold_items si
-            JOIN items i ON si.item_id = i.id
-            GROUP BY item_id
+            SELECT item_id, item_name, quantity FROM sold_items si
+            GROUP BY item_id, item_name
             ORDER BY SUM(quantity) DESC
             LIMIT 15
         """)
@@ -272,6 +302,7 @@ async def finish_checkout(request: Request):
         for item in request.session["cart"].values():
             insert_transaction(
                 item_id=item['id'],
+                item_name=item['name'],
                 session_id=request.session['session_id'],
                 price_at_purchase=item['price'],
                 quantity=item['qty'],

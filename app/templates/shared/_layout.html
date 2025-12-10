@@ -13,7 +13,9 @@
     <!-- <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0-alpha4/dist/htmx.min.js"
         integrity="sha384-PDdj2nduKy1q0jypHdCWFooDDtqv/oZIRlt2KvIJ6i1OHNnAJ5vCYA1Gl6SLNtsv"
         crossorigin="anonymous"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js" integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
+        integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
+        crossorigin="anonymous"></script>
 
     <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
 
@@ -21,13 +23,47 @@
     <!-- <link rel="stylesheet" href="/static/css/base.css" /> -->
     <link rel="stylesheet" href="/static/css/theme.css" />
 
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
 
 </head>
 
 <body class="bg-[#FFFDF8]">
-    <header></header>
+    <header class="sticky top-0 bg-[#FFFDF8] border-b-[3px] border-gray-900 z-50">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+
+                <div class="flex items-center gap-4">
+                    <h1 class="text-2xl font-bold tracking-tight">
+                        <a href="/" class="hover:opacity-80 transition-opacity">
+                            <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span>
+                        </a>
+                    </h1>
+                </div>
+
+                <nav class="flex items-center space-x-12">
+                    <div class="flex items-center gap-6">
+                        <!-- <a href="https://github.com/coderamp-labs/gitingest" target="_blank" rel="noopener noreferrer" class="link-bounce flex items-center gap-1.5 text-gray-900">
+                        <span class="material-symbols-outlined" style="font-size: 36px;">refresh</span>
+                    </a> -->
+
+                        <h3 class="text-xl tracking-tight">
+                            <a href="/" class="hover:opacity-80 transition-opacity">
+                                <span class="text-gray-800">About</span>
+                            </a>
+                        </h3>
+
+                        <h3 class="text-xl tracking-tight">
+                            <a href="/" class="hover:opacity-80 transition-opacity">
+                                <span class="text-gray-800">Catalog</span>
+                            </a>
+                        </h3>
+
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
 
     <div>
         {% block main_content %}{% endblock %}

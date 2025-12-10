@@ -24,7 +24,6 @@
       if event.target is not in me and event.target is not in #search-result-container
         add .hidden to #search-result-container
         set me.value to ''
-        focus() to me
       end
     end
 
@@ -62,7 +61,7 @@
   </div>
 
 
-    <div id="checkout-container" class="border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4 md:mt-6 bg-[#fff4da] p-3 w-full">
+    <div id="checkout-container" class="sticky bottom-0 z-50 border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4 md:mt-6  bg-white/30 backdrop-blur-md p-3 w-full">
         <div class="flex justify-between items-center gap-3">
             <div id="total" hx-swap-oob="true" class="flex flex-col gap-1">
                 <p class="text-sm font-normal text-gray-500 tracking-wide">Total Items: 0</p>

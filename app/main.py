@@ -1,3 +1,4 @@
+from httpcore import request
 import os
 from loguru import logger
 import sys
@@ -11,6 +12,8 @@ from fastapi.templating import Jinja2Templates
 import sqlite3
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
+from pprint import pprint
+import secrets
 
 
 
@@ -32,16 +35,30 @@ db = sqlite3.connect(":memory:")
 db.row_factory = sqlite3.Row
 with db:
     cursor = db.cursor()
-    cursor.execute("""
+    query = ("""
     CREATE TABLE items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         price REAL NOT NULL,
         image_url TEXT
-
     );
+
+    CREATE TABLE sold_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        item_id INTEGER NOT NULL REFERENCES items(id),
+        price_at_purchase REAL NOT NULL,
+        quantity INTEGER NOT NULL,
+        total_price REAL NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX idx_sold_items_item_id ON sold_items (item_id);
+    CREATE INDEX idx_sold_items_session_id ON sold_items (session_id);
+
     """
     )
+    cursor.executescript(query)
 
     items = [
         ("Apple", 5000, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
@@ -68,14 +85,36 @@ db.commit()
 
 
 def get_total(session):
-    total_qty = sum(item['qty'] for item in session.values())
-    total_price = sum(item['price'] * item['qty'] for item in session.values())
+    total_qty = sum(item['qty'] for item in session['cart'].values())
+    total_price = sum(item['price'] * item['qty'] for item in session['cart'].values())
     return total_qty, total_price
+
+def insert_transaction(session_id: str, item_id: int, price_at_purchase: float, quantity: int, total_price: float):
+    with db:
+        cursor = db.cursor()
+        cursor.execute(
+            "INSERT INTO sold_items (session_id, item_id, price_at_purchase, quantity, total_price) VALUES (?, ?, ?, ?, ?)",
+            (session_id, item_id, price_at_purchase, quantity, total_price)
+        )
+        db.commit()
+
+def _debug_transactions():
+    logger.debug(f"Transactions in database:")
+    with db:
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM sold_items")
+        transactions = cursor.fetchall()
+        pprint([dict(tx) for tx in transactions])
+
 
 @app.get("/")
 def home_page(request: Request):
     context = {}
     request.session.clear()
+    # set session id
+    request.session['session_id'] = secrets.token_hex(16)
+    request.session['cart'] = {}
+
     logger.debug(f"Session data: {request.session}")
     return templates.TemplateResponse(request, 'home/index.html', context=context)
 
@@ -86,12 +125,6 @@ async def search(request: Request, q: str):
         cursor = db.cursor()
         cursor.execute("SELECT id, name, image_url FROM items WHERE name LIKE ?", (f"%{q}%",))
         results = cursor.fetchall()
-
-        # for row in results:
-        #   if str(row['id']) in request.session.keys():
-        #     logger.debug(f"Item {row['id']} already in cart, skipping.")
-
-
     if not results  :
         response = '<div disabled>No results found</div>'
     
@@ -100,7 +133,7 @@ async def search(request: Request, q: str):
             f"""
           <div id="search-item-{row['id']}"
           hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
-            class="flex border-2 rounded-md border-gray-900 h-16 bg-white {'pointer-events-none opacity-50 cursor-not-allowed' if str(row['id']) in request.session else ''}"
+            class="flex border-2 rounded-md border-gray-900 h-16 bg-white {'pointer-events-none opacity-50 cursor-not-allowed' if str(row['id']) in request.session['cart'] else ''}"
             _ = "
             on click
               add .hidden to #search-result-container
@@ -133,8 +166,8 @@ async def read_item(request:Request, item_id: int):
         if row is None:
             raise HTTPException(status_code=404, detail="Item not found")
         
-        request.session[str(row['id'])] = dict(id=row['id'], name=row['name'], price=row['price'], image_url=row['image_url'], qty=1)
-        row = request.session[str(row['id'])]
+        request.session["cart"][str(row['id'])] = dict(id=row['id'], name=row['name'], price=row['price'], image_url=row['image_url'], qty=1)
+        row = request.session["cart"][str(row['id'])]
         logger.debug(f"Session after adding item: {request.session}")
 
         total_qty, total_price = get_total(request.session)
@@ -152,8 +185,8 @@ async def read_item(request:Request, item_id: int):
 @app.delete("/remove/{item_id}")
 async def remove_item(request: Request, item_id: int):
     item_key = str(item_id)
-    if item_key in request.session:
-        del request.session[item_key]
+    if item_key in request.session["cart"]:
+        del request.session["cart"][item_key]
         logger.debug(f"Item {item_id} removed from session")
     else:
         logger.debug(f"Item {item_id} not found in session")
@@ -170,15 +203,15 @@ async def remove_item(request: Request, item_id: int):
 async def decrease_item(request: Request, item_id: int):
     # minumum quantity is 1
     item_key = str(item_id)
-    if item_key in request.session:
-        if request.session[item_key]['qty'] > 1:
-            request.session[item_key]['qty'] -= 1
-            logger.debug(f"Decreased quantity of item {item_id} to {request.session[item_key]['qty']}")
+    if item_key in request.session["cart"]:
+        if request.session['cart'][item_key]['qty'] > 1:
+            request.session["cart"][item_key]['qty'] -= 1
+            logger.debug(f"Decreased quantity of item {item_id} to {request.session['cart'][item_key]['qty']}")
     else:
         logger.debug(f"Item {item_id} not found in session")
     logger.debug(f"Session after decrease: {request.session}")
 
-    row = request.session[item_key]
+    row = request.session["cart"][item_key]
     total_qty, total_price = get_total(request.session)
     return templates.TemplateResponse("home/_sub_total.html", {
         "request": request,
@@ -192,11 +225,11 @@ async def decrease_item(request: Request, item_id: int):
 @app.get("/increase/{item_id}")
 async def increase_item(request: Request, item_id: int):
     item_key = str(item_id)
-    if item_key in request.session:
-        request.session[item_key]['qty'] += 1
-        logger.debug(f"Increased quantity of item {item_id} to {request.session[item_key]['qty']}")
+    if item_key in request.session["cart"]:
+        request.session["cart"][item_key]['qty'] += 1
+        logger.debug(f"Increased quantity of item {item_id} to {request.session['cart'][item_key]['qty']}")
     logger.debug(f"Session after increase: {request.session}")
-    row = request.session[item_key]
+    row = request.session["cart"][item_key]
     total_qty, total_price = get_total(request.session)
     return templates.TemplateResponse("home/_sub_total.html", {
         "request": request,
@@ -207,10 +240,43 @@ async def increase_item(request: Request, item_id: int):
         "total_price": f"{int(total_price):,}"
     })
       
+@app.get("/favorites")
+async def favorite_items(request: Request):
+    with db:
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT item_id, name, quantity FROM sold_items si
+            JOIN items i ON si.item_id = i.id
+            GROUP BY item_id
+            ORDER BY SUM(quantity) DESC
+            LIMIT 15
+        """)
+        items = cursor.fetchall()
+
+    return templates.TemplateResponse("home/_favorites.html", {
+        "request": request,
+        "items": items
+    })
+
 @app.post("/finish")
 async def finish_checkout(request: Request):
     logger.debug("Checkout finished, session cleared.")
-    logger.debug(f"Session after checkout: {request.session}")
+    logger.debug(f"Final session data: {request.session}")
+    if request.session:
+        for item in request.session["cart"].values():
+            insert_transaction(
+                item_id=item['id'],
+                session_id=request.session['session_id'],
+                price_at_purchase=item['price'],
+                quantity=item['qty'],
+                total_price=item['price'] * item['qty']
+            )
+        
+    logger.info("Transactions inserted into database.")
+
+    _debug_transactions()
+
+
     response = Response(status_code=200)
     response.headers["HX-Redirect"] = "/"
     return response

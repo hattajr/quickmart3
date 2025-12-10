@@ -1,18 +1,20 @@
 
 {% for item in items %}
+
       <div id="fav-{{item.item_id}}" class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 text-sm max-h-7">
         <!-- <span class="truncate max-w-[6rem]">{{item.name}}</span> -->
         <button class="truncate max-w-[6rem] text-left" 
         hx-get="/items/{{item.item_id}}"
         hx-target="#cart-container"
         hx-swap="beforeend"
-        _="on click
+        _="
+        on click
           add .pointer-events-none to #fav-{{item.item_id}}
           add .opacity-50 to #fav-{{item.item_id}}
           add .cursor-not-allowed to #fav-{{item.item_id}}
         "
         >
-          {{item.name}}
+          {{item.item_name}}
         </button>
       </div>
 {% endfor %}

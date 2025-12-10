@@ -44,13 +44,13 @@
 
     </div>
 
-    <div class="flex flex-wrap gap-1 max-w-sm">
-      <div class="flex items-center bg-[#EBDBB7] gap-1 py-1 px-2.5 border rounded-sm border-gray-900 text-sm">
+    <div class="flex flex-wrap h-15 gap-1" hx-get="/favorites" hx-trigger="load" hx-target="this" hx-swap="innerHTML">
+      <!-- <div class="flex items-center bg-[#EBDBB7] gap-1 py-1 px-2.5 border rounded-sm border-gray-900 text-sm">
         <span>Apple</span>
       </div>
       <div class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 text-sm">
         <span class="truncate max-w-[6rem]">Banananananannanananana</span>
-      </div>
+      </div> -->
     </div>
   </div>
 

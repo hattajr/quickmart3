@@ -133,8 +133,14 @@ async def search(request: Request, q: str):
             f"""
           <div id="search-item-{row['id']}"
           hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
-            class="flex border-2 rounded-md border-gray-900 h-16 bg-white {'pointer-events-none opacity-50 cursor-not-allowed' if str(row['id']) in request.session['cart'] else ''}"
+            class="flex border-2 rounded-md border-gray-900 h-16 bg-white"
             _ = "
+            on load
+                if #cart-item-{row['id']} is in document
+                  add .pointer-events-none to me
+                  add .opacity-50 to me
+                  add .cursor-not-allowed to me
+                end
             on click
               add .hidden to #search-result-container
               set #search-input's value to ''

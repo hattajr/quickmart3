@@ -100,11 +100,6 @@ def get_pg_db():
     finally:
         conn.close()
 
-
-
-
-
-
 def get_total(session):
     total_qty = sum(item['qty'] for item in session['cart'].values())
     total_price = sum(item['price'] * item['qty'] for item in session['cart'].values())
@@ -149,12 +144,12 @@ async def search(request: Request, q: str):
     #     results = cursor.fetchall()
     for conn in get_pg_db():
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name, image_url FROM products WHERE name ILIKE %s", (f"%{q}%",))
+        cursor.execute("SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s", (f"%{q}%",))
         results = cursor.fetchall()
 
         if not results:
             response = '<div disabled>No results found</div>'
-
+        
         else:
             response = ''.join(
                 f"""
@@ -175,8 +170,9 @@ async def search(request: Request, q: str):
                 "
                 >
                 <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
-                <img src={row['image_url'] or "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"}
-                    alt="Apple" class="object-cover w-full h-full rounded-md" />
+                <img src={row['image_url'] or f"http://legion:9000/ikmi/ikmimart_images/{row['barcode']}.png"}
+                    onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';"
+                     class="object-cover w-full h-full rounded-md" />
                 </div>
                 <div class="flex-1 p-2 flex items-center min-w-0">
                 <div class="truncate w-full">
@@ -197,12 +193,15 @@ async def read_item(request:Request, item_id: int):
     #     row = cursor.fetchone()
     for conn in get_pg_db():
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name, price, image_url FROM products WHERE id = %s", (item_id,))
+        cursor.execute("SELECT id, barcode, name, price, image_url FROM products WHERE id = %s", (item_id,))
         row = cursor.fetchone()
 
         if row is None:
             raise HTTPException(status_code=404, detail="Item not found")
         
+        if row['image_url'] is None:
+            row['image_url'] = f"http://legion:9000/ikmi/ikmimart_images/{row['barcode']}.png"
+
         request.session["cart"][str(row['id'])] = dict(id=row['id'], name=row['name'], price=row['price'], image_url=row['image_url'], qty=1)
         row = request.session["cart"][str(row['id'])]
         logger.debug(f"Session after adding item: {request.session}")
@@ -318,6 +317,29 @@ async def finish_checkout(request: Request):
     response.headers["HX-Redirect"] = "/"
     return response
 
+@app.get("/about")
+async def about_modal(request: Request):
+    return templates.TemplateResponse("home/about.html", {
+        "request": request
+    })
+
+@app.get("/catalog")
+async def catalog_modal(request: Request):
+
+    for conn in get_pg_db():
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, barcode, name, image_url, price FROM products")
+        results = cursor.fetchall()
+
+        if not results:
+            response = '<div disabled>No results found</div>'
+
+    return templates.TemplateResponse("home/catalog.html", {
+        "request": request,
+        "items": results,
+        "assets_url": "http://legion:9000/ikmi/ikmimart_images/"
+    })
+
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
@@ -326,3 +348,5 @@ if __name__ == "__main__":
         workers=int(os.getenv("WORKERS", "1")),
         reload=bool(int(os.getenv("RELOAD", "1"))),
     )
+
+# https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930

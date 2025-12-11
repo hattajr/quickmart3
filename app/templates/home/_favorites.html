@@ -1,9 +1,9 @@
 
 {% for item in items %}
 
-      <div id="fav-{{item.item_id}}" class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 text-sm max-h-7">
+      <div id="fav-{{item.item_id}}" class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 max-h-7">
         <!-- <span class="truncate max-w-[6rem]">{{item.name}}</span> -->
-        <button class="truncate max-w-[6rem] text-left" 
+        <button class="truncate max-w-[6rem] text-left text-xs" 
         hx-get="/items/{{item.item_id}}"
         hx-target="#cart-container"
         hx-swap="beforeend"

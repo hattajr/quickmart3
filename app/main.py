@@ -33,57 +33,57 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 # DEBUG: In-memory database
-db = sqlite3.connect(":memory:")
-db.row_factory = sqlite3.Row
-with db:
-    cursor = db.cursor()
-    query = ("""
-    CREATE TABLE items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        price REAL NOT NULL,
-        image_url TEXT
-    );
+# db = sqlite3.connect(":memory:")
+# db.row_factory = sqlite3.Row
+# with db:
+#     cursor = db.cursor()
+#     query = ("""
+#     CREATE TABLE items (
+#         id INTEGER PRIMARY KEY AUTOINCREMENT,
+#         name TEXT NOT NULL,
+#         price REAL NOT NULL,
+#         image_url TEXT
+#     );
 
-    CREATE TABLE sold_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT NOT NULL,
-        item_id INTEGER NOT NULL REFERENCES items(id),
-        item_name TEXT NOT NULL,
-        price_at_purchase REAL NOT NULL,
-        quantity INTEGER NOT NULL,
-        total_price REAL NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+#     CREATE TABLE sold_items (
+#         id INTEGER PRIMARY KEY AUTOINCREMENT,
+#         session_id TEXT NOT NULL,
+#         item_id INTEGER NOT NULL REFERENCES items(id),
+#         item_name TEXT NOT NULL,
+#         price_at_purchase REAL NOT NULL,
+#         quantity INTEGER NOT NULL,
+#         total_price REAL NOT NULL,
+#         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+#     );
 
-    CREATE INDEX idx_sold_items_item_id ON sold_items (item_id);
-    CREATE INDEX idx_sold_items_session_id ON sold_items (session_id);
+#     CREATE INDEX idx_sold_items_item_id ON sold_items (item_id);
+#     CREATE INDEX idx_sold_items_session_id ON sold_items (session_id);
 
-    """
-    )
-    cursor.executescript(query)
+#     """
+#     )
+#     cursor.executescript(query)
 
-    items = [
-        ("Apple", 5000, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
-        ("Bananananannananananannananananan", 3000, None),
-        ("Banana", 3000, None),
-        ("Orange", 7000, None),
-        ("Grapes", 2000, None),
-        ("Watermelon", 3500, None),
-        ("Pineapple", 2500, None),
-        ("Mango", 1500, None),
-        ("Strawberry", 4000, None),
-        ("Blueberry", 5000, None),
-        ("Kiwi", 1200, None),
-        ("Peach", 1800, None),
-        ("Cherry", 6000, None),
-        ("Papaya", 2200, None),
-        ("Plum", 1600, None),
-        ("Coconut", 3000, None)
-    ]
-    cursor.executemany("INSERT INTO items (name, price, image_url) VALUES (?, ?, ?)", items)
+#     items = [
+#         ("Apple", 5000, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
+#         ("Bananananannananananannananananan", 3000, None),
+#         ("Banana", 3000, None),
+#         ("Orange", 7000, None),
+#         ("Grapes", 2000, None),
+#         ("Watermelon", 3500, None),
+#         ("Pineapple", 2500, None),
+#         ("Mango", 1500, None),
+#         ("Strawberry", 4000, None),
+#         ("Blueberry", 5000, None),
+#         ("Kiwi", 1200, None),
+#         ("Peach", 1800, None),
+#         ("Cherry", 6000, None),
+#         ("Papaya", 2200, None),
+#         ("Plum", 1600, None),
+#         ("Coconut", 3000, None)
+#     ]
+#     cursor.executemany("INSERT INTO items (name, price, image_url) VALUES (?, ?, ?)", items)
 
-db.commit()
+# db.commit()
 # DEBUG: End in-memory database
 
 def get_pg_db():
@@ -106,22 +106,21 @@ def get_total(session):
     return total_qty, total_price
 
 def insert_transaction(session_id: str, item_id: int, item_name: str, price_at_purchase: float, quantity: int, total_price: float):
-    with db:
+    for db in get_pg_db():
         cursor = db.cursor()
-
         cursor.execute(
-            "INSERT INTO sold_items (session_id, item_id, item_name, price_at_purchase, quantity, total_price) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO sold_items (session_id, item_id, item_name, price_at_purchase, quantity, total_price) VALUES (%s, %s, %s, %s, %s, %s)",
             (session_id, item_id, item_name, price_at_purchase, quantity, total_price)
         )
         db.commit()
 
-def _debug_transactions():
-    logger.debug(f"Transactions in database:")
-    with db:
-        cursor = db.cursor()
-        cursor.execute("SELECT * FROM sold_items")
-        transactions = cursor.fetchall()
-        pprint([dict(tx) for tx in transactions])
+# def _debug_transactions():
+#     logger.debug(f"Transactions in database:")
+#     with db:
+#         cursor = db.cursor()
+#         cursor.execute("SELECT * FROM sold_items")
+#         transactions = cursor.fetchall()
+#         pprint([dict(tx) for tx in transactions])
 
 
 @app.get("/")
@@ -278,13 +277,14 @@ async def increase_item(request: Request, item_id: int):
       
 @app.get("/favorites")
 async def favorite_items(request: Request):
-    with db:
+    for db in get_pg_db():
         cursor = db.cursor()
         cursor.execute("""
-            SELECT item_id, item_name, quantity FROM sold_items si
-            GROUP BY item_id, item_name
-            ORDER BY SUM(quantity) DESC
-            LIMIT 15
+SELECT item_id, item_name, SUM(quantity) as total_quantity
+FROM sold_items si
+GROUP BY item_id, item_name
+ORDER BY total_quantity DESC
+LIMIT 15;
         """)
         items = cursor.fetchall()
 
@@ -310,7 +310,7 @@ async def finish_checkout(request: Request):
         
     logger.info("Transactions inserted into database.")
 
-    _debug_transactions()
+    # _debug_transactions()
 
 
     response = Response(status_code=200)

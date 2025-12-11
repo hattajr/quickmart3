@@ -29,6 +29,7 @@
 </head>
 
 <body class="bg-[#FFFDF8]">
+
     <header class="sticky top-0 bg-[#FFFDF8] border-b-[3px] border-gray-900 z-50">
         <div class="max-w-4xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
@@ -43,20 +44,15 @@
 
                 <nav class="flex items-center space-x-12">
                     <div class="flex items-center gap-6">
-                        <!-- <a href="https://github.com/coderamp-labs/gitingest" target="_blank" rel="noopener noreferrer" class="link-bounce flex items-center gap-1.5 text-gray-900">
-                        <span class="material-symbols-outlined" style="font-size: 36px;">refresh</span>
-                    </a> -->
+
+                        {%include 'home/about.html' %}
 
                         <h3 class="text-xl tracking-tight">
-                            <a href="/" class="hover:opacity-80 transition-opacity">
-                                <span class="text-gray-800">About</span>
-                            </a>
-                        </h3>
-
-                        <h3 class="text-xl tracking-tight">
-                            <a href="/" class="hover:opacity-80 transition-opacity">
+                            <a 
+                            href="/catalog"
+                            class="hover:opacity-80 transition-opacity">
                                 <span class="text-gray-800">Catalog</span>
-                            </a>
+                        </a>
                         </h3>
 
                     </div>
@@ -65,7 +61,7 @@
         </div>
     </header>
 
-    <div>
+    <div id="main-content">
         {% block main_content %}{% endblock %}
     </div>
 
@@ -75,3 +71,15 @@
 </body>
 
 </html>
+
+<!-- <dialog id="about" >
+  <button autofocus
+  _ ="
+    on click call #about's close()"
+  >Close</button>
+  <p>This modal dialog has a groovy backdrop!</p>
+</dialog>
+<button
+_ ="
+  on click call #about's showModal()"
+>Show the dialog</button> -->

@@ -70,12 +70,13 @@
       </div>
       <div class="flex gap-2">
         <button id="restart-button"
-          class="h-full aspect-square min-h-[80px] bg-blue-500 font-semibold text-2xl flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer"
-          _="on click call window.location.reload()">
+          class="h-full aspect-square min-h-[80px] bg-blue-500 font-semibold text-2xl flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:scale-95"
+          _="on click 
+          call window.location.reload()">
           <span class="material-symbols-outlined" style="font-size: 36px;">refresh</span>
         </button>
         <button id="checkout-button" hx-post="/finish" hx-target="#cart-container" hx-swap="innerHTML"
-          class="h-full aspect-square min-h-[80px] bg-green-500 font-semibold text-2xl flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer">
+          class="h-full aspect-square min-h-[80px] bg-green-500 font-semibold text-2xl flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:scale-95">
           Finish
         </button>
       </div>

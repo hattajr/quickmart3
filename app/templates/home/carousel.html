@@ -1,42 +1,44 @@
-        <dialog id="carousel-dialog" 
-        class="fixed inset-0 m-auto w-11/12 max-w-4xl p-0 bg-transparent border-0 backdrop:backdrop-blur-sm backdrop:bg-black/60"
-        _="on load wait 100ms then call me.showModal()
+<dialog id="carousel-dialog"
+    class="fixed inset-0 m-auto w-11/12 max-w-4xl p-0 bg-transparent border-0 backdrop:backdrop-blur-sm backdrop:bg-black/60"
+    _="on load wait 100ms then call me.showModal()
            on click if target == me then call me.close()">
 
     <!-- Carousel Container -->
-    <div id="carousel-content" 
-         class="relative bg-white rounded-lg shadow-2xl overflow-hidden aspect-square"
-         _="on click if target != #prev and target != #next and target.closest('#prev') == null and target.closest('#next') == null then call #carousel-dialog's close()">
+    <div id="carousel-content" class="relative bg-white rounded-lg shadow-2xl overflow-hidden aspect-square"
+        _="on click if target != #prev and target != #next and target.closest('#prev') == null and target.closest('#next') == null then call #carousel-dialog's close()">
         <div class="relative w-full h-full overflow-hidden">
             <!-- Slides -->
             {% for image in images %}
-            <div id="slide-{{ loop.index0 }}" class="absolute inset-0 transition-opacity duration-500 {% if loop.first %}opacity-100{% else %}opacity-0{% endif %}">
-                <img src="{{ image.url if image is mapping else image }}" 
-                     alt="Promo slide {{ loop.index }}" 
-                     class="w-full h-full object-cover">
+            <div id="slide-{{ loop.index0 }}"
+                class="absolute inset-0 transition-opacity duration-500 {% if loop.first %}opacity-100{% else %}opacity-0{% endif %}">
+                <img src="{{ image.url if image is mapping else image }}" alt="Promo slide {{ loop.index }}"
+                    class="w-full h-full object-cover">
             </div>
             {% endfor %}
         </div>
-        
+
         <!-- Previous Button -->
-        <button id="prev" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg transition-all">
+        <button id="prev"
+            class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg transition-all">
             <svg class="w-4 h-4 sm:w-6 sm:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
-        
+
         <!-- Next Button -->
-        <button id="next" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg transition-all">
+        <button id="next"
+            class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg transition-all">
             <svg class="w-4 h-4 sm:w-6 sm:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
         </button>
-        
+
         <!-- Indicators -->
         <div class="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
             {% for image in images %}
-            <button class="indicator w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all {% if loop.first %}bg-white{% else %}bg-white/50{% endif %}" 
-                    data-slide="{{ loop.index0 }}"></button>
+            <button
+                class="indicator w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all {% if loop.first %}bg-white{% else %}bg-white/50{% endif %}"
+                data-slide="{{ loop.index0 }}"></button>
             {% endfor %}
         </div>
     </div>
@@ -54,15 +56,15 @@
             slide.classList.remove('opacity-100');
             slide.classList.add('opacity-0');
         });
-        
+
         indicators.forEach(ind => {
             ind.classList.remove('bg-white');
             ind.classList.add('bg-white/50');
         });
-        
+
         slides[n].classList.remove('opacity-0');
         slides[n].classList.add('opacity-100');
-        
+
         indicators[n].classList.remove('bg-white/50');
         indicators[n].classList.add('bg-white');
     }

@@ -17,9 +17,13 @@ import secrets
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from user_agents import parse
+import httpx
+from xml.etree import ElementTree
 
 
 MINIO_URL = os.getenv("MINIO_URL")
+MINIO_PRODUCT_IMAGE_URL = f'{os.getenv("MINIO_URL")}/ikmimart_images'
+MINIO_CAROUSEL_IMAGE_URL = f'{os.getenv("MINIO_URL")}/ikmimart_carousel'
 
 logger.remove()
 logger.add(
@@ -156,7 +160,7 @@ async def search(request: Request, q: str):
                 "
                 >
                 <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
-                <img src={row['image_url'] or f"{MINIO_URL}/{row['barcode']}.png"}
+                <img src={row['image_url'] or f"{MINIO_PRODUCT_IMAGE_URL}/{row['barcode']}.png"}
                     onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';"
                      class="object-cover w-full h-full rounded-md" />
                 </div>
@@ -182,7 +186,7 @@ async def read_item(request:Request, item_id: int):
             raise HTTPException(status_code=404, detail="Item not found")
         
         if row['image_url'] is None:
-            row['image_url'] = f"{MINIO_URL}/{row['barcode']}.png"
+            row['image_url'] = f"{MINIO_PRODUCT_IMAGE_URL}/{row['barcode']}.png"
 
         request.session["cart"][str(row['id'])] = dict(id=row['id'], name=row['name'], price=row['price'], image_url=row['image_url'], qty=1)
         row = request.session["cart"][str(row['id'])]
@@ -314,11 +318,13 @@ async def catalog_modal(request: Request):
 
         if not results:
             response = '<div disabled>No results found</div>'
+    
+    logger.debug(MINIO_PRODUCT_IMAGE_URL)
 
     return templates.TemplateResponse("home/catalog.html", {
         "request": request,
         "items": results,
-        "assets_url": f"{MINIO_URL}"
+        "assets_url": f"{MINIO_PRODUCT_IMAGE_URL}/"
     })
 
 
@@ -335,6 +341,30 @@ async def feedback_submission(request: Request, feedback_text: str = Form(...)):
         conn.commit()
     logger.info(f"Feedback received: {feedback_text}")
     return HTMLResponse(content="<span>Terima kasih atas masukan Anda!</span>")
+
+@app.get("/carousel-images")
+def list_carousel_images(request: Request):
+    url = f"{MINIO_URL}?list-type=2&prefix={MINIO_CAROUSEL_IMAGE_URL.split('/')[-1]}/"
+    logger.debug(f"Fetching carousel images from: {url}")
+    xml = httpx.get(url).text
+    logger.debug(f"Received XML: {xml[:500]}...")
+    # xml = requests.get(url).text
+
+    root = ElementTree.fromstring(xml)
+    ns = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+
+    images = []
+    for content in root.findall("s3:Contents", ns):
+        key = content.find("s3:Key", ns).text
+        images.append(f"{MINIO_URL}/{key}")
+    
+    logger.debug(images)
+
+    return templates.TemplateResponse("home/carousel.html", {
+        "request": request,
+        "images": images
+    })
+
 
 if __name__ == "__main__":
     uvicorn.run(

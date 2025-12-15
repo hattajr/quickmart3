@@ -12,6 +12,9 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.4",
     "python-multipart>=0.0.20",
+    "pyyaml>=6.0.3",
+    "ua-parser>=1.0.1",
+    "user-agents>=2.2.0",
     "uvicorn>=0.38.0",
 ]
 

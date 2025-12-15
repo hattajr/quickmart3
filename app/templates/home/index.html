@@ -5,7 +5,7 @@
 
 <div class="relative max-w-4xl mx-auto mt-4 p-4">
   <div
-    class="relative bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 z-10">
+    class="relative bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 z-100">
     <div class="flex gap-2.5 mb-2.5">
       <div class="flex-1 relative">
         <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 border-gray-300 bg-sky-50">
@@ -46,18 +46,13 @@
 
     <div class="flex flex-wrap h-15 gap-1 overflow-x-auto" hx-get="/favorites" hx-trigger="load" hx-target="this"
       hx-swap="innerHTML">
-      <!-- <div class="flex items-center bg-[#EBDBB7] gap-1 py-1 px-2.5 border rounded-sm border-gray-900 text-sm">
-        <span>Apple</span>
-      </div>
-      <div class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 text-sm">
-        <span class="truncate max-w-[6rem]">Banananananannanananana</span>
-      </div> -->
     </div>
   </div>
 
 
   <div id="cart-container"
     class="flex flex-col gap-2 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4 md:mt-6 h-100 md:h-180 p-2 overflow-y-auto">
+    {% include 'home/carousel.html' %}
   </div>
 
 

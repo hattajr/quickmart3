@@ -102,8 +102,7 @@
                     placeholder="Pesan harus lebih dari 5 karakter..."></textarea>
                 <button type="submit"
                     class="bg-blue-500 cursor-pointer text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center active:bg-blue-600 p-2"
-                    _=" -- on click log 'hi'
-                    -- call #feedback's close()">Send</button>
+                    >Send</button>
             </div>
         </form>
         <div id="feedback-response" class="mt-4 text-green-600 font-medium h-6"></div>
@@ -112,6 +111,44 @@
     </dialog>
 
 
+    <div 
+    hx-get="/carousel-images"
+    hx-trigger="load"
+    hx-target="#carousel-container"
+    hx-swap="innerHTML"
+    class="fixed bottom-4 right-4 w-72 h-9 z-50"
+    ></div>
+    <div id="carousel-container" class="h-full w-full">
+    </div>
+
+
+    <script>
+        let timeoutId;
+        function resetTimer() {
+            clearTimeout(timeoutId);
+            const carousel = document.getElementById('carousel-dialog');
+            if (!carousel || !carousel.open) {
+                timeoutId = setTimeout(reloadPage, 60000 * 3); // minutes
+            }
+        }
+        function reloadPage() {
+            const carousel = document.getElementById('carousel-dialog');
+            if (!carousel || !carousel.open) {
+                location.reload();
+            }
+        }
+        resetTimer();
+        document.addEventListener('mousemove', resetTimer);
+        document.addEventListener('keypress', resetTimer);
+        document.addEventListener('click', resetTimer);
+        document.addEventListener('scroll', resetTimer);
+        document.addEventListener('touchstart', resetTimer);
+        document.addEventListener('touchmove', resetTimer);
+        document.addEventListener('keydown', resetTimer);
+        document.addEventListener('keyup', resetTimer);
+        document.addEventListener('input', resetTimer);
+
+    </script>
 
 
 

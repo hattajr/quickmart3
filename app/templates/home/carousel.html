@@ -1,35 +1,108 @@
+        <dialog id="carousel-dialog" 
+        class="fixed inset-0 m-auto w-11/12 max-w-4xl p-0 bg-transparent border-0 backdrop:backdrop-blur-sm backdrop:bg-black/60"
+        _="on load wait 100ms then call me.showModal()
+           on click if target == me then call me.close()">
 
-
-<div id="default-carousel" class="relative w-full h-full p-6" data-carousel="slide">
-    <!-- Carousel wrapper -->
-    <div class="relative h-full overflow-hidden rounded-base">
-        <div class="hidden duration-700 ease-in-out" data-carousel-item>
-            <img src="https://media.desenio.com/site_images/685c87728fdef2fa155dd41d_1789925067_17469-8.jpg" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+    <!-- Carousel Container -->
+    <div id="carousel-content" 
+         class="relative bg-white rounded-lg shadow-2xl overflow-hidden aspect-square"
+         _="on click if target != #prev and target != #next and target.closest('#prev') == null and target.closest('#next') == null then call #carousel-dialog's close()">
+        <div class="relative w-full h-full overflow-hidden">
+            <!-- Slides -->
+            {% for image in images %}
+            <div id="slide-{{ loop.index0 }}" class="absolute inset-0 transition-opacity duration-500 {% if loop.first %}opacity-100{% else %}opacity-0{% endif %}">
+                <img src="{{ image.url if image is mapping else image }}" 
+                     alt="Promo slide {{ loop.index }}" 
+                     class="w-full h-full object-cover">
+            </div>
+            {% endfor %}
         </div>
-        <div class="hidden duration-700 ease-in-out" data-carousel-item>
-            <img src="https://images.unsplash.com/photo-1594476664296-8c552053aef3?q=80&w=1160&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
-        </div>
-        <div class="hidden duration-700 ease-in-out" data-carousel-item>
-            <img src="https://images.unsplash.com/photo-1495615080073-6b89c9839ce0?q=80&w=1806&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+        
+        <!-- Previous Button -->
+        <button id="prev" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg transition-all">
+            <svg class="w-4 h-4 sm:w-6 sm:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        
+        <!-- Next Button -->
+        <button id="next" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg transition-all">
+            <svg class="w-4 h-4 sm:w-6 sm:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+        
+        <!-- Indicators -->
+        <div class="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
+            {% for image in images %}
+            <button class="indicator w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all {% if loop.first %}bg-white{% else %}bg-white/50{% endif %}" 
+                    data-slide="{{ loop.index0 }}"></button>
+            {% endfor %}
         </div>
     </div>
-    <!-- Slider indicators -->
-    <div class="absolute z-30 flex -translate-x-1/2 bottom-5 left-1/2 space-x-3 rtl:space-x-reverse">
-        <button type="button" class="w-3 h-3 rounded-base" aria-current="true" aria-label="Slide 1" data-carousel-slide-to="0"></button>
-        <button type="button" class="w-3 h-3 rounded-base" aria-current="false" aria-label="Slide 2" data-carousel-slide-to="1"></button>
-        <button type="button" class="w-3 h-3 rounded-base" aria-current="false" aria-label="Slide 3" data-carousel-slide-to="2"></button>
-    </div>
-    <!-- Slider controls -->
-    <button type="button" class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none" data-carousel-prev>
-        <span class="inline-flex items-center justify-center w-10 h-10 rounded-base bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
-            <svg class="w-5 h-5 text-white rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/></svg>
-            <span class="sr-only">Previous</span>
-        </span>
-    </button>
-    <button type="button" class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none" data-carousel-next>
-        <span class="inline-flex items-center justify-center w-10 h-10 rounded-base bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
-            <svg class="w-5 h-5 text-white rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/></svg>
-            <span class="sr-only">Next</span>
-        </span>
-    </button>
-</div>
+</dialog>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('[id^="slide-"]');
+    const indicators = document.querySelectorAll('.indicator');
+    const totalSlides = slides.length;
+    let autoPlayInterval;
+
+    function showSlide(n) {
+        slides.forEach(slide => {
+            slide.classList.remove('opacity-100');
+            slide.classList.add('opacity-0');
+        });
+        
+        indicators.forEach(ind => {
+            ind.classList.remove('bg-white');
+            ind.classList.add('bg-white/50');
+        });
+        
+        slides[n].classList.remove('opacity-0');
+        slides[n].classList.add('opacity-100');
+        
+        indicators[n].classList.remove('bg-white/50');
+        indicators[n].classList.add('bg-white');
+    }
+
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        showSlide(currentSlide);
+    }
+
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        showSlide(currentSlide);
+    }
+
+    function startAutoPlay() {
+        autoPlayInterval = setInterval(nextSlide, 7000);
+    }
+
+    function resetAutoPlay() {
+        clearInterval(autoPlayInterval);
+        startAutoPlay();
+    }
+
+    document.getElementById('next').addEventListener('click', () => {
+        nextSlide();
+        resetAutoPlay();
+    });
+
+    document.getElementById('prev').addEventListener('click', () => {
+        prevSlide();
+        resetAutoPlay();
+    });
+
+    indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', () => {
+            currentSlide = index;
+            showSlide(currentSlide);
+            resetAutoPlay();
+        });
+    });
+
+    startAutoPlay();
+</script>

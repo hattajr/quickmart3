@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="apple-touch-icon" sizes="180x180" href="static/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="static/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="static/favicon/favicon-16x16.png">
@@ -25,38 +25,56 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
     <!-- <link rel="stylesheet" href="/static/css/base.css" /> -->
-    <link rel="stylesheet" href="/static/css/theme.css" />
+    <!-- <link rel="stylesheet" href="/static/css/theme.css" /> -->
 
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.js"></script>
 
 
 </head>
 
 <body class="bg-[#FFFDF8]">
 
-    <header class="sticky top-0 bg-[#FFFDF8] border-b-[3px] border-gray-900 z-50">
+    <header class="sticky top-0 bg-[#FFFDF8] border-b-[3px] border-gray-900 z-1000">
         <div class="max-w-4xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
 
                 <div class="flex items-center gap-4">
                     <h1 class="text-2xl font-bold tracking-tight">
                         <a href="/" class="hover:opacity-80 transition-opacity">
-                            <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span>
+                            <!-- <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span> -->
                         </a>
                     </h1>
                 </div>
 
                 <nav class="flex items-center space-x-12">
-                    <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-4 md:gap-6">
 
                         {%include 'home/about.html' %}
 
-                        <h3 class="text-xl tracking-tight">
-                            <a 
-                            href="/catalog"
-                            class="hover:opacity-80 transition-opacity">
+                        <h3 class="text-base md:text-xl tracking-tight">
+                            <button class="hover:opacity-80 transition-opacity" _="on click call #about's showModal()">
+                                <span class="text-gray-800">About</span>
+                            </button>
+                        </h3>
+
+                        <h3 class="text-base md:text-xl tracking-tight">
+                            <a href="/catalog" class="hover:opacity-80 transition-opacity">
                                 <span class="text-gray-800">Catalog</span>
-                        </a>
+                            </a>
+                        </h3>
+
+                        <h3 class="text-base md:text-xl tracking-tight">
+                            <button _="on click 
+                                set #feedback-textarea's value to ''
+                                set #feedback-response's innerHTML to ''
+                                call #feedback's showModal()
+                            "
+                                class="bg-blue-500 text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:bg-blue-600 p-2">
+                                <span class="text-white">Chat</span>
+                            </button>
                         </h3>
 
                     </div>
@@ -69,21 +87,38 @@
         {% block main_content %}{% endblock %}
     </div>
 
+    <dialog id="feedback" _="on submit wait 1s then call #feedback's close()"
+        class="fixed inset-0 m-auto min-w-3/4 p-4 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900  backdrop:backdrop-blur-sm backdrop:bg-black/30">
+        <div class="flex justify-between items-center mb-2 font-bold text-xl">
+            <span>Kirim Pesan</span>
+            <button autofocus _="on click call #feedback's close()">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+        </div>
+        <form hx-post="/feedback" hx-target="#feedback-response" hx-swap="innerHTML">
+            <div class="flex flex-col gap-3">
+                <textarea id="feedback-textarea" name="feedback_text" rows="5" required minlength="5"
+                    class="w-full p-2 border-2 border-gray-900 rounded-md resize-none bg-sky-50"
+                    placeholder="Pesan harus lebih dari 5 karakter..."></textarea>
+                <button type="submit"
+                    class="bg-blue-500 cursor-pointer text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center active:bg-blue-600 p-2"
+                    _=" -- on click log 'hi'
+                    -- call #feedback's close()">Send</button>
+            </div>
+        </form>
+        <div id="feedback-response" class="mt-4 text-green-600 font-medium h-6"></div>
+
+
+    </dialog>
+
+
+
+
+
+
     <footer>
     </footer>
 
 </body>
 
 </html>
-
-<!-- <dialog id="about" >
-  <button autofocus
-  _ ="
-    on click call #about's close()"
-  >Close</button>
-  <p>This modal dialog has a groovy backdrop!</p>
-</dialog>
-<button
-_ ="
-  on click call #about's showModal()"
->Show the dialog</button> -->

@@ -16,8 +16,10 @@ from pprint import pprint
 import secrets
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from user_agents import parse
 
 
+MINIO_URL = os.getenv("MINIO_URL")
 
 logger.remove()
 logger.add(
@@ -32,59 +34,6 @@ app.add_middleware(SessionMiddleware, secret_key="[removed]")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# DEBUG: In-memory database
-# db = sqlite3.connect(":memory:")
-# db.row_factory = sqlite3.Row
-# with db:
-#     cursor = db.cursor()
-#     query = ("""
-#     CREATE TABLE items (
-#         id INTEGER PRIMARY KEY AUTOINCREMENT,
-#         name TEXT NOT NULL,
-#         price REAL NOT NULL,
-#         image_url TEXT
-#     );
-
-#     CREATE TABLE sold_items (
-#         id INTEGER PRIMARY KEY AUTOINCREMENT,
-#         session_id TEXT NOT NULL,
-#         item_id INTEGER NOT NULL REFERENCES items(id),
-#         item_name TEXT NOT NULL,
-#         price_at_purchase REAL NOT NULL,
-#         quantity INTEGER NOT NULL,
-#         total_price REAL NOT NULL,
-#         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-#     );
-
-#     CREATE INDEX idx_sold_items_item_id ON sold_items (item_id);
-#     CREATE INDEX idx_sold_items_session_id ON sold_items (session_id);
-
-#     """
-#     )
-#     cursor.executescript(query)
-
-#     items = [
-#         ("Apple", 5000, "https://plus.unsplash.com/premium_photo-1724249990837-f6dfcb7f3eaa?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"),
-#         ("Bananananannananananannananananan", 3000, None),
-#         ("Banana", 3000, None),
-#         ("Orange", 7000, None),
-#         ("Grapes", 2000, None),
-#         ("Watermelon", 3500, None),
-#         ("Pineapple", 2500, None),
-#         ("Mango", 1500, None),
-#         ("Strawberry", 4000, None),
-#         ("Blueberry", 5000, None),
-#         ("Kiwi", 1200, None),
-#         ("Peach", 1800, None),
-#         ("Cherry", 6000, None),
-#         ("Papaya", 2200, None),
-#         ("Plum", 1600, None),
-#         ("Coconut", 3000, None)
-#     ]
-#     cursor.executemany("INSERT INTO items (name, price, image_url) VALUES (?, ?, ?)", items)
-
-# db.commit()
-# DEBUG: End in-memory database
 
 def get_pg_db():
     conn = psycopg2.connect(
@@ -100,6 +49,39 @@ def get_pg_db():
     finally:
         conn.close()
 
+def get_client_ip(request: Request) -> str:
+    x_forwarded_for = request.headers.get("X-Forwarded-For")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.client.host
+
+def get_user_agent(request: Request) -> str:
+    return request.headers.get("User-Agent", "")
+
+def parse_user_agent(request: Request) -> dict:
+    """Parse user agent to extract device, browser, OS"""
+    user_agent_string = get_user_agent(request)
+    user_agent = parse(user_agent_string)
+    
+    return {
+        "user_agent": user_agent_string,
+        "device_type": "mobile" if user_agent.is_mobile else 
+                      "tablet" if user_agent.is_tablet else 
+                      "desktop",
+        "browser": f"{user_agent.browser.family} {user_agent.browser.version_string}",
+        "os": f"{user_agent.os.family} {user_agent.os.version_string}"
+    }
+
+async def get_country_from_ip(ip_address: str) -> str:
+    """Get country code from IP address using free API"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"http://ip-api.com/json/{ip_address}")
+            data = response.json()
+            return data.get("countryCode", "")  # Returns 2-letter code like "KR", "US"
+    except:
+        return ""
+
 def get_total(session):
     total_qty = sum(item['qty'] for item in session['cart'].values())
     total_price = sum(item['price'] * item['qty'] for item in session['cart'].values())
@@ -113,14 +95,23 @@ def insert_transaction(session_id: str, item_id: int, item_name: str, price_at_p
             (session_id, item_id, item_name, price_at_purchase, quantity, total_price)
         )
         db.commit()
+        logger.debug(f"Inserted transaction for item {item_name} (ID: {item_id}) into database.")
 
-# def _debug_transactions():
-#     logger.debug(f"Transactions in database:")
-#     with db:
-#         cursor = db.cursor()
-#         cursor.execute("SELECT * FROM sold_items")
-#         transactions = cursor.fetchall()
-#         pprint([dict(tx) for tx in transactions])
+async def log_sold_session(request: Request):
+    for db in get_pg_db():
+        cur = db.cursor()
+        session_id = request.session.get('session_id', 'unknown')
+        ip_address = get_client_ip(request)
+        ua_info = parse_user_agent(request)
+        country= await get_country_from_ip(ip_address)
+
+        cur.execute(
+            "INSERT INTO sold_sessions (session_id, ip_address, user_agent, device_type, browser, os, country) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (session_id) DO NOTHING",
+            (session_id, get_client_ip(request), ua_info['user_agent'], ua_info['device_type'], ua_info['browser'], ua_info['os'], country)
+        )
+        db.commit()
+        logger.debug(f"Logged sold session {session_id} into database.")
+
 
 
 @app.get("/")
@@ -137,10 +128,6 @@ def home_page(request: Request):
 @app.get("/search")
 async def search(request: Request, q: str):
     logger.debug(f"Search query: {q}")
-    # with db:
-    #     cursor = db.cursor()
-    #     cursor.execute("SELECT id, name, image_url FROM items WHERE name LIKE ?", (f"%{q}%",))
-    #     results = cursor.fetchall()
     for conn in get_pg_db():
         cursor = conn.cursor()
         cursor.execute("SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s", (f"%{q}%",))
@@ -169,7 +156,7 @@ async def search(request: Request, q: str):
                 "
                 >
                 <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
-                <img src={row['image_url'] or f"http://legion:9000/ikmi/ikmimart_images/{row['barcode']}.png"}
+                <img src={row['image_url'] or f"{MINIO_URL}/{row['barcode']}.png"}
                     onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';"
                      class="object-cover w-full h-full rounded-md" />
                 </div>
@@ -186,10 +173,6 @@ async def search(request: Request, q: str):
 
 @app.get("/items/{item_id}")
 async def read_item(request:Request, item_id: int):
-    # with db:
-    #     cursor = db.cursor()
-    #     cursor.execute("SELECT id, name, price, image_url FROM items WHERE id = ?", (item_id,))
-    #     row = cursor.fetchone()
     for conn in get_pg_db():
         cursor = conn.cursor()
         cursor.execute("SELECT id, barcode, name, price, image_url FROM products WHERE id = %s", (item_id,))
@@ -199,7 +182,7 @@ async def read_item(request:Request, item_id: int):
             raise HTTPException(status_code=404, detail="Item not found")
         
         if row['image_url'] is None:
-            row['image_url'] = f"http://legion:9000/ikmi/ikmimart_images/{row['barcode']}.png"
+            row['image_url'] = f"{MINIO_URL}/{row['barcode']}.png"
 
         request.session["cart"][str(row['id'])] = dict(id=row['id'], name=row['name'], price=row['price'], image_url=row['image_url'], qty=1)
         row = request.session["cart"][str(row['id'])]
@@ -307,12 +290,10 @@ async def finish_checkout(request: Request):
                 quantity=item['qty'],
                 total_price=item['price'] * item['qty']
             )
+
+        await log_sold_session(request)
         
     logger.info("Transactions inserted into database.")
-
-    # _debug_transactions()
-
-
     response = Response(status_code=200)
     response.headers["HX-Redirect"] = "/"
     return response
@@ -337,8 +318,23 @@ async def catalog_modal(request: Request):
     return templates.TemplateResponse("home/catalog.html", {
         "request": request,
         "items": results,
-        "assets_url": "http://legion:9000/ikmi/ikmimart_images/"
+        "assets_url": f"{MINIO_URL}"
     })
+
+
+@app.post("/feedback")
+async def feedback_submission(request: Request, feedback_text: str = Form(...)):
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+    for conn in get_pg_db():
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO feedback_messages (session_id, message, ip_address, user_agent) VALUES (%s, %s, %s, %s)",
+            (request.session.get('session_id', 'unknown'), feedback_text, client_ip, user_agent)
+        )
+        conn.commit()
+    logger.info(f"Feedback received: {feedback_text}")
+    return HTMLResponse(content="<span>Terima kasih atas masukan Anda!</span>")
 
 if __name__ == "__main__":
     uvicorn.run(
@@ -348,5 +344,3 @@ if __name__ == "__main__":
         workers=int(os.getenv("WORKERS", "1")),
         reload=bool(int(os.getenv("RELOAD", "1"))),
     )
-
-# https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930

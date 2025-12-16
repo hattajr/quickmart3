@@ -11,6 +11,9 @@
     _="on load wait 100ms then call me.showModal()">
     <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold">Admin Access</h2>
+        <button _="on click call #password-modal's close() then set window.location to '/'" class="hover:opacity-80">
+            <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
     </div>
     <form hx-post="/admin/verify" hx-target="#admin-content" hx-swap="innerHTML">
         <div class="flex flex-col gap-4">
@@ -27,4 +30,8 @@
         </div>
     </form>
 </dialog>
+{% endblock %}
+
+{% block carousel %}
+<!-- Carousel disabled on admin page -->
 {% endblock %}

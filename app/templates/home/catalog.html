@@ -1,18 +1,44 @@
 {% extends 'shared/base.html' %}
 
 {% block main_content %}
-<div class="max-w-4xl mx-auto mt-4 p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-    {% for item in items %}
-    <div
-        class="flex flex-col items-center bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 h-50">
-        <img src="{{item.image_url or assets_url ~ item.barcode ~ '.png'}}"
-            class="w-24 h-24 object-contain mb-2 rounded-md"
-            onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';">
-        <div class="flex flex-col items-center justify-center grid grid-rows-2">
-            <span class="font-medium text-sm text-center mb-1">{{item.name}}</span>
-            <span class="font-bold text-md text-center text-[#FE4A60] mb-2">₩{{item.price}}</span>
-        </div>
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Product Catalog</h1>
+        <p class="text-gray-600">Browse our complete selection of products</p>
     </div>
-    {% endfor %}
+
+    <!-- Product Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for item in items %}
+        <div
+            class="bg-white border-3 rounded-xl border-gray-900 shadow-[6px_6px_0px] shadow-gray-900 overflow-hidden hover:shadow-[8px_8px_0px] hover:translate-y-[-2px] transition-all duration-200">
+            <!-- Product Image -->
+            <div class="bg-[#fff4da] p-4 flex items-center justify-center h-48">
+                <img src="{{item.image_url or assets_url ~ item.barcode ~ '.png'}}" class="w-full h-full object-contain"
+                    onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';"
+                    alt="{{item.name}}">
+            </div>
+
+            <!-- Product Info -->
+            <div class="p-4 bg-white">
+                <h3 class="font-semibold text-sm text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">{{item.name}}</h3>
+                <span class="text-xl font-bold text-[#FE4A60]">₩{{"{:,}".format(item.price)}}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not items %}
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">inventory_2</span>
+        <p class="text-gray-500 text-lg">No products available</p>
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block carousel %}
+<!-- Carousel disabled on catalog page -->
 {% endblock %}

@@ -21,3 +21,6 @@ RELOAD: bool = bool(int(os.getenv("RELOAD", "1")))
 
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")
 SESSION_SECRET_KEY: str = os.getenv("SESSION_SECRET_KEY", "your-super-secret-key")
+
+# Admin authentication - CHANGE THIS IN PRODUCTION!
+ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")

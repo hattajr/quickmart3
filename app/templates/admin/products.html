@@ -1,0 +1,37 @@
+{% extends "shared/base.html" %}
+
+{% block main_content %}
+<div class="max-w-6xl mx-auto mt-4 p-4">
+    <div id="admin-content"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+</div>
+
+<dialog id="password-modal" 
+    class="fixed inset-0 m-auto w-96 p-6 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 backdrop:backdrop-blur-sm backdrop:bg-black/30"
+    _="on load wait 100ms then call me.showModal()">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Admin Access</h2>
+    </div>
+    <form hx-post="/admin/verify" hx-target="#admin-content" hx-swap="innerHTML">
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="password" class="block text-sm font-medium mb-2">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    autofocus
+                    class="w-full p-2 border-2 border-gray-900 rounded-md bg-white"
+                    placeholder="Enter admin password"
+                />
+            </div>
+            <button 
+                type="submit"
+                class="bg-blue-500 text-white font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-blue-600 active:scale-95 cursor-pointer">
+                Access Admin
+            </button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}

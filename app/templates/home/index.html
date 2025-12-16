@@ -12,21 +12,20 @@
             hx-target="#search-result-container" hx-swap="innerHTML"
             hx-trigger="keyup[key=='Enter' && this.value.length >= 1], keyup[this.value.length >= 1]" name="q"
             placeholder="Search..." clearable _="
-    on input
-      if my value.trim() != '' 
-        remove .hidden from #search-result-container
-      else 
-        add .hidden to #search-result-container
-      end
+            on input
+              if my value.trim() != '' 
+                remove .hidden from #search-result-container
+              else 
+                add .hidden to #search-result-container
+              end
 
-    on click from document
-      if event.target is not in me and event.target is not in #search-result-container
-        add .hidden to #search-result-container
-        set me.value to ''
-      end
-    end
-
-  " />
+            on click from document
+              if event.target is not in me and event.target is not in #search-result-container
+                add .hidden to #search-result-container
+                set me.value to ''
+              end
+            end
+          " />
         </div>
 
         <div id="search-result-container"
@@ -35,11 +34,9 @@
         </div>
       </div>
 
-
       <div id="search-camera"
         class="w-10 flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer">
       </div>
-
     </div>
 
     <div class="flex flex-wrap h-15 gap-1 overflow-x-auto" hx-get="/favorites" hx-trigger="load" hx-target="this"
@@ -50,10 +47,7 @@
 
   <div id="cart-container"
     class="flex flex-col gap-2 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4 md:mt-6 h-100 md:h-180 p-2 overflow-y-auto">
-
   </div>
-
-
 
   <div id="checkout-container"
     class="sticky bottom-0 z-50 border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 mt-4 md:mt-6  bg-white/30 backdrop-blur-md p-3 w-full">
@@ -65,8 +59,7 @@
       <div class="flex gap-2">
         <button id="restart-button"
           class="h-full aspect-square min-h-[80px] bg-blue-500 font-semibold text-2xl flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:scale-95"
-          _="on click 
-          call window.location.reload()">
+          _="on click call window.location.reload()">
           <span class="material-symbols-outlined" style="font-size: 36px;">refresh</span>
         </button>
         <button id="checkout-button" hx-post="/finish" hx-target="#cart-container" hx-swap="innerHTML"
@@ -77,9 +70,4 @@
     </div>
   </div>
 </div>
-
-
-
-
-
 {% endblock %}

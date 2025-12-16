@@ -6,12 +6,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-from app.db.database import get_pg_db
 from app.config import MINIO_PRODUCT_IMAGE_URL
+from app.db.database import get_pg_db
 
 
-router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+router: APIRouter = APIRouter()
+templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/search")

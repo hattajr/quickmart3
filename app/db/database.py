@@ -1,13 +1,13 @@
 """
 Database connection and transaction management.
 """
-import os
 from typing import Generator
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from loguru import logger
 
-from app.config import PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
+import psycopg2
+from loguru import logger
+from psycopg2.extras import RealDictCursor
+
+from app.config import PG_DATABASE, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 
 
 def get_pg_db() -> Generator[psycopg2.extensions.connection, None, None]:

@@ -1,17 +1,17 @@
 """
 Shopping cart related route handlers.
 """
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
+from app.config import MINIO_PRODUCT_IMAGE_URL
 from app.db.database import get_pg_db
 from app.utils.cart import get_cart_total
-from app.config import MINIO_PRODUCT_IMAGE_URL
 
 
-router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+router: APIRouter = APIRouter()
+templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/items/{item_id}")

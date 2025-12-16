@@ -2,15 +2,20 @@
 FastAPI application entry point for QuickMart POS system.
 """
 import sys
+from pathlib import Path
+
+# Add parent directory to path for direct execution
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import uvicorn
-from loguru import logger
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import LOG_LEVEL, SESSION_SECRET_KEY, APP_HOST, APP_PORT, WORKERS, RELOAD
-from app.routes import main as main_routes
+from app.config import APP_HOST, APP_PORT, LOG_LEVEL, RELOAD, SESSION_SECRET_KEY, WORKERS
 from app.routes import cart as cart_routes
+from app.routes import main as main_routes
 from app.routes import products as products_routes
 
 
@@ -22,7 +27,7 @@ logger.add(
     format="[<level>{level: <8}</level>] <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
 )
 
-app = FastAPI(title="QuickMart POS", version="1.0.0")
+app: FastAPI = FastAPI(title="QuickMart POS", version="1.0.0")
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

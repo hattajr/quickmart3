@@ -27,7 +27,7 @@
                 <div class="flex items-center gap-4">
                     <h1 class="text-2xl font-bold tracking-tight">
                         <a href="/" class="hover:opacity-80 transition-opacity">
-                            <!-- <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span> -->
+                            <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span>
                         </a>
                     </h1>
                 </div>
@@ -96,10 +96,12 @@
     </dialog>
 
 
+    {% block carousel %}
     <div hx-get="/carousel-images" hx-trigger="load" hx-target="#carousel-container" hx-swap="innerHTML"
         class="fixed bottom-4 right-4 w-72 h-9 z-50">
     </div>
     <div id="carousel-container" class="h-full w-full"></div>
+    {% endblock %}
 
     <script>
         let timeoutId;

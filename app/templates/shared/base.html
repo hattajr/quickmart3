@@ -9,28 +9,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="static/favicon/favicon-16x16.png">
     <link rel="manifest" href="static/favicon/site.webmanifest">
 
-
     <title>IKMI Mart</title>
 
-    <!-- <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-response-targets@2.0.2"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0-alpha4/dist/htmx.min.js"
-        integrity="sha384-PDdj2nduKy1q0jypHdCWFooDDtqv/oZIRlt2KvIJ6i1OHNnAJ5vCYA1Gl6SLNtsv"
-        crossorigin="anonymous"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
         integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
         crossorigin="anonymous"></script>
-
     <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
-
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
-    <!-- <link rel="stylesheet" href="/static/css/base.css" /> -->
-    <!-- <link rel="stylesheet" href="/static/css/theme.css" /> -->
-
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-
-
-
 </head>
 
 <body class="bg-[#FFFDF8]">
@@ -38,18 +24,16 @@
     <header class="sticky top-0 bg-[#FFFDF8] border-b-[3px] border-gray-900 z-1000">
         <div class="max-w-4xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
-
                 <div class="flex items-center gap-4">
                     <h1 class="text-2xl font-bold tracking-tight">
                         <a href="/" class="hover:opacity-80 transition-opacity">
-                            <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span>
+                            <!-- <span class="text-gray-900">IKMI</span> <span class="text-[#FE4A60]">Mart</span> -->
                         </a>
                     </h1>
                 </div>
 
                 <nav class="flex items-center space-x-12">
                     <div class="flex items-center gap-4 md:gap-6">
-
                         {%include 'home/about.html' %}
 
                         <h3 class="text-base md:text-xl tracking-tight">
@@ -66,15 +50,13 @@
 
                         <h3 class="text-base md:text-xl tracking-tight">
                             <button _="on click 
-                                set #feedback-textarea's value to ''
-                                set #feedback-response's innerHTML to ''
-                                call #feedback's showModal()
-                            "
-                                class="bg-blue-500 text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:bg-blue-600 p-2">
+                set #feedback-textarea's value to ''
+                set #feedback-response's innerHTML to ''
+                call #feedback's showModal()
+              " class="bg-blue-500 text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:bg-blue-600 p-2">
                                 <span class="text-white">Chat</span>
                             </button>
                         </h3>
-
                     </div>
                 </nav>
             </div>
@@ -99,26 +81,19 @@
                     class="w-full p-2 border-2 border-gray-900 rounded-md resize-none bg-sky-50"
                     placeholder="Pesan harus lebih dari 5 karakter..."></textarea>
                 <button type="submit"
-                    class="bg-blue-500 cursor-pointer text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center active:bg-blue-600 p-2"
-                    >Send</button>
+                    class="bg-blue-500 cursor-pointer text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center active:bg-blue-600 p-2">
+                    Send
+                </button>
             </div>
         </form>
         <div id="feedback-response" class="mt-4 text-green-600 font-medium h-6"></div>
-
-
     </dialog>
 
 
-    <div 
-    hx-get="/carousel-images"
-    hx-trigger="load"
-    hx-target="#carousel-container"
-    hx-swap="innerHTML"
-    class="fixed bottom-4 right-4 w-72 h-9 z-50"
-    ></div>
-    <div id="carousel-container" class="h-full w-full">
+    <div hx-get="/carousel-images" hx-trigger="load" hx-target="#carousel-container" hx-swap="innerHTML"
+        class="fixed bottom-4 right-4 w-72 h-9 z-50">
     </div>
-
+    <div id="carousel-container" class="h-full w-full"></div>
 
     <script>
         let timeoutId;
@@ -126,7 +101,7 @@
             clearTimeout(timeoutId);
             const carousel = document.getElementById('carousel-dialog');
             if (!carousel || !carousel.open) {
-                timeoutId = setTimeout(reloadPage, 60000 * 3); // minutes
+                timeoutId = setTimeout(reloadPage, 60000 * 3);
             }
         }
         function reloadPage() {
@@ -145,15 +120,9 @@
         document.addEventListener('keydown', resetTimer);
         document.addEventListener('keyup', resetTimer);
         document.addEventListener('input', resetTimer);
-
     </script>
 
-
-
-
-    <footer>
-    </footer>
-
+    <footer></footer>
 </body>
 
 </html>

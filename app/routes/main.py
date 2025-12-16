@@ -32,7 +32,7 @@ def initialize_session(request: Request):
 
 
 @router.post("/finish")
-async def finish_checkout(request: Request):
+async def finish_checkout(request: Request) -> Response:
     """
     Complete checkout and save transaction data.
     """
@@ -73,7 +73,7 @@ async def finish_checkout(request: Request):
 
 
 @router.post("/feedback")
-async def submit_feedback(request: Request, feedback_text: str = Form(...)):
+async def submit_feedback(request: Request, feedback_text: str = Form(...)) -> HTMLResponse:
     """
     Submit user feedback.
     """
@@ -97,7 +97,7 @@ async def submit_feedback(request: Request, feedback_text: str = Form(...)):
 
 
 @router.get("/about")
-async def show_about_modal(request: Request):
+async def show_about_modal(request: Request) -> Response:
     """
     Display the about modal.
     """
@@ -107,7 +107,7 @@ async def show_about_modal(request: Request):
 
 
 @router.get("/carousel-images")
-async def list_carousel_images(request: Request):
+async def list_carousel_images(request: Request) -> Response:
     """
     Fetch and display carousel images from MinIO.
     """

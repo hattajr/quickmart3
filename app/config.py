@@ -5,8 +5,8 @@ import os
 
 
 MINIO_URL: str = os.getenv("MINIO_URL", "")
-MINIO_PRODUCT_IMAGE_URL: str = f'{MINIO_URL}/ikmimart_images'
-MINIO_CAROUSEL_IMAGE_URL: str = f'{MINIO_URL}/ikmimart_carousel'
+MINIO_PRODUCT_IMAGE_URL: str = f"{MINIO_URL}/ikmimart_images"
+MINIO_CAROUSEL_IMAGE_URL: str = f"{MINIO_URL}/ikmimart_carousel"
 
 PG_HOST: str = os.getenv("PG_HOST", "localhost")
 PG_PORT: str = os.getenv("PG_PORT", "5432")

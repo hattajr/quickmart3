@@ -14,6 +14,7 @@ from loguru import logger
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import APP_HOST, APP_PORT, LOG_LEVEL, RELOAD, SESSION_SECRET_KEY, WORKERS
+from app.routes import admin as admin_routes
 from app.routes import cart as cart_routes
 from app.routes import main as main_routes
 from app.routes import products as products_routes
@@ -34,6 +35,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(main_routes.router, tags=["main"])
 app.include_router(cart_routes.router, tags=["cart"])
 app.include_router(products_routes.router, tags=["products"])
+app.include_router(admin_routes.router, tags=["admin"])
 
 
 if __name__ == "__main__":

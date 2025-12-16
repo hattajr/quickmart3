@@ -1,0 +1,64 @@
+<dialog id="add-modal" 
+    class="fixed inset-0 m-auto w-full max-w-2xl p-6 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 backdrop:backdrop-blur-sm backdrop:bg-black/30">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Add New Product</h2>
+        <button _="on click call #add-modal's close()" class="hover:opacity-80">
+            <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+    </div>
+    <form hx-post="/admin/products/add" hx-target="#admin-content" hx-swap="innerHTML" hx-include="[name='sort_by'],[name='sort_order']">
+        <input type="hidden" name="password" value="{{ password }}" />
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Barcode</label>
+                <input type="text" name="barcode" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Name <span class="text-red-500">*</span></label>
+                <input type="text" name="name" required class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Brand</label>
+                <input type="text" name="brand" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Price <span class="text-red-500">*</span></label>
+                <input type="number" name="price" required min="1" value="1" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Unit</label>
+                <input type="text" name="unit" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Stock</label>
+                <input type="number" name="stock" min="0" value="0" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div class="col-span-2">
+                <label class="block text-sm font-medium mb-1">Description</label>
+                <input type="text" name="description" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div class="col-span-2">
+                <label class="block text-sm font-medium mb-1">Keyword</label>
+                <input type="text" name="keyword" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" />
+            </div>
+            <div class="col-span-2">
+                <label class="block text-sm font-medium mb-1">Image URL</label>
+                <input type="url" name="image_url" class="w-full p-2 border-2 border-gray-900 rounded-md bg-white" placeholder="https://example.com/image.jpg" />
+            </div>
+        </div>
+        <div class="flex gap-2 justify-end">
+            <button 
+                type="button"
+                class="bg-gray-300 text-gray-800 font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-gray-400 active:scale-95 cursor-pointer"
+                _="on click call #add-modal's close()">
+                Cancel
+            </button>
+            <button 
+                type="submit"
+                class="bg-green-500 text-white font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-green-600 active:scale-95 cursor-pointer"
+                _="on htmx:afterRequest if detail.successful call #add-modal's close()">
+                Add Product
+            </button>
+        </div>
+    </form>
+</dialog>

@@ -1,0 +1,106 @@
+<div class="bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-4"
+    _="on load 
+        if #password-modal is in document
+            call #password-modal's close()
+        end
+    ">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-3xl font-bold">Product Management</h1>
+        <button 
+            class="bg-green-500 text-white font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-green-600 active:scale-95 cursor-pointer"
+            _="on click call #add-modal's showModal()">
+            + Add Product
+        </button>
+    </div>
+
+    <div class="mb-4">
+        <form hx-post="/admin/products/search" hx-target="#product-table-body" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms from:#search-query, change from:#sort-by, change from:#sort-order" hx-include="[name='password'],[name='sort_by'],[name='sort_order']">
+            <input type="hidden" name="password" value="{{ password }}" />
+            <input type="hidden" id="sort-by" name="sort_by" value="{{ sort_by }}" />
+            <input type="hidden" id="sort-order" name="sort_order" value="{{ sort_order }}" />
+            <input 
+                type="search" 
+                id="search-query"
+                name="q" 
+                placeholder="Search products by name..."
+                class="w-full p-2 border-2 border-gray-900 rounded-md bg-white"
+            />
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full border-2 border-gray-900">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300"
+                        _="on click 
+                            if #sort-by's value == 'id' then
+                                if #sort-order's value == 'asc' then
+                                    set #sort-order's value to 'desc'
+                                else
+                                    set #sort-order's value to 'asc'
+                                end
+                            else
+                                set #sort-by's value to 'id'
+                                set #sort-order's value to 'asc'
+                            end
+                            trigger change on #sort-by
+                        ">
+                        ID {% if sort_by == 'id' %}{{ '▲' if sort_order == 'asc' else '▼' }}{% endif %}
+                    </th>
+                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300"
+                        _="on click 
+                            if #sort-by's value == 'name' then
+                                if #sort-order's value == 'asc' then
+                                    set #sort-order's value to 'desc'
+                                else
+                                    set #sort-order's value to 'asc'
+                                end
+                            else
+                                set #sort-by's value to 'name'
+                                set #sort-order's value to 'asc'
+                            end
+                            trigger change on #sort-by
+                        ">
+                        Name {% if sort_by == 'name' %}{{ '▲' if sort_order == 'asc' else '▼' }}{% endif %}
+                    </th>
+                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300"
+                        _="on click 
+                            if #sort-by's value == 'price' then
+                                if #sort-order's value == 'asc' then
+                                    set #sort-order's value to 'desc'
+                                else
+                                    set #sort-order's value to 'asc'
+                                end
+                            else
+                                set #sort-by's value to 'price'
+                                set #sort-order's value to 'asc'
+                            end
+                            trigger change on #sort-by
+                        ">
+                        Price {% if sort_by == 'price' %}{{ '▲' if sort_order == 'asc' else '▼' }}{% endif %}
+                    </th>
+                    <th class="border-2 border-gray-900 p-2 text-left">Image URL</th>
+                    <th class="border-2 border-gray-900 p-2 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="product-table-body">
+                {% include 'admin/_product_table.html' %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include 'admin/_add_modal.html' %}
+
+{% for product in products %}
+    {% include 'admin/_edit_modal.html' %}
+{% endfor %}
+
+{% if toast_message %}
+<div hx-swap-oob="beforeend:#toast-container">
+    {% set message = toast_message %}
+    {% set type = toast_type %}
+    {% include 'admin/_toast.html' %}
+</div>
+{% endif %}

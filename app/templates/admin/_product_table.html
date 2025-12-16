@@ -5,22 +5,21 @@
     <td class="border-2 border-gray-900 p-2">₩{{ product.price }}</td>
     <td class="border-2 border-gray-900 p-2 text-xs truncate max-w-xs">
         {% if product.image_url %}
-            <a href="{{ product.image_url }}" target="_blank" class="text-blue-600 hover:underline">{{ product.image_url[:50] }}...</a>
+        <a href="{{ product.image_url }}" target="_blank" class="text-blue-600 hover:underline">{{
+            product.image_url[:50] }}...</a>
         {% else %}
-            <span class="text-gray-400">no image url</span>
+        <span class="text-gray-400">no image url</span>
         {% endif %}
     </td>
     <td class="border-2 border-gray-900 p-2">
         <div class="flex gap-2 justify-center">
-            <button 
+            <button
                 class="bg-blue-500 text-white px-3 py-1 border-2 rounded border-gray-900 shadow-[2px_2px_0px] shadow-gray-900 hover:bg-blue-600 active:scale-95 cursor-pointer text-sm"
                 _="on click call #edit-modal-{{ product.id }}'s showModal()">
                 Edit
             </button>
-            <button 
-                hx-delete="/admin/products/{{ product.id }}?password={{ password }}"
-                hx-confirm="Are you sure you want to delete this product?"
-                hx-target="#product-row-{{ product.id }}"
+            <button hx-delete="/admin/products/{{ product.id }}?password={{ password }}"
+                hx-confirm="Are you sure you want to delete this product?" hx-target="#product-row-{{ product.id }}"
                 hx-swap="outerHTML swap:0.5s"
                 class="bg-red-500 text-white px-3 py-1 border-2 rounded border-gray-900 shadow-[2px_2px_0px] shadow-gray-900 hover:bg-red-600 active:scale-95 cursor-pointer text-sm">
                 Delete

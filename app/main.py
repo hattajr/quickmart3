@@ -18,6 +18,8 @@ from app.routes import admin as admin_routes
 from app.routes import cart as cart_routes
 from app.routes import main as main_routes
 from app.routes import products as products_routes
+import subprocess
+from contextlib import asynccontextmanager
 
 
 logger.remove()
@@ -28,7 +30,28 @@ logger.add(
     format="[<level>{level: <8}</level>] <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
 )
 
-app: FastAPI = FastAPI(title="QuickMart POS", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Context manager for FastAPI app. It will run all code before `yield`
+    on app startup, and will run code after `yeld` on app shutdown.
+    """
+
+    try:
+        subprocess.run([
+            "tailwindcss",
+            "-i",
+            "app/static/css/input.css",
+            "-o",
+            "app/static/css/tailwind.css",
+            "--minify"
+        ])
+    except Exception as e:
+        print(f"Error running tailwindcss: {e}")
+
+    yield
+
+app = FastAPI(lifespan=lifespan, title="QuickMart POS", version="1.0.0")
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

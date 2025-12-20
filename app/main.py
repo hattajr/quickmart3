@@ -39,6 +39,11 @@ async def lifespan(app: FastAPI):
 
     try:
         subprocess.run([
+            "uv",
+            "tool",
+            "run",
+            "--from",
+            "pytailwindcss",
             "tailwindcss",
             "-i",
             "app/static/css/input.css",

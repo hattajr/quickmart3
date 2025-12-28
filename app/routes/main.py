@@ -11,7 +11,7 @@ from xml.etree import ElementTree
 
 from app.db.database import insert_transaction, insert_sold_session, get_pg_db
 from app.utils import get_client_ip, parse_user_agent, get_country_from_ip
-from app.config import MINIO_URL, MINIO_CAROUSEL_IMAGE_URL
+from app.config import MINIO_URL, MINIO_CAROUSEL_IMAGE_URL, CAROUSEL_URL
 
 
 router = APIRouter()
@@ -111,24 +111,34 @@ async def list_carousel_images(request: Request) -> Response:
     """
     Fetch and display carousel images from MinIO.
     """
-    url = f"{MINIO_URL}?list-type=2&prefix={MINIO_CAROUSEL_IMAGE_URL.split('/')[-1]}/"
-    logger.debug(f"Fetching carousel images from: {url}")
+    # url = f"{MINIO_URL}?list-type=2&prefix={MINIO_CAROUSEL_IMAGE_URL.split('/')[-1]}/"
+    # logger.debug(f"Fetching carousel images from: {url}")
     
+    # async with httpx.AsyncClient() as client:
+    #     response = await client.get(url)
+    #     xml = response.text
+    
+    # root = ElementTree.fromstring(xml)
+    # ns = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+
+    # images = []
+    # for content in root.findall("s3:Contents", ns):
+    #     key = content.find("s3:Key", ns).text
+    #     images.append(f"{MINIO_URL}/{key}")
+    
+    params = {"ref": "tailwind"}
     async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        xml = response.text
-    
-    root = ElementTree.fromstring(xml)
-    ns = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+        response = await client.get(url=CAROUSEL_URL, params=params)
+        response.raise_for_status()
+        items = response.json()
 
-    images = []
-    for content in root.findall("s3:Contents", ns):
-        key = content.find("s3:Key", ns).text
-        images.append(f"{MINIO_URL}/{key}")
-    
-    logger.debug(f"Found {len(images)} carousel images")
-
+    images_url = [
+        i["download_url"]
+        for i in items
+        if i["type"] == "file"
+    ]
+    logger.debug(f"Found {len(images_url)} carousel images")
     return templates.TemplateResponse("home/carousel.html", {
         "request": request,
-        "images": images
+        "images": images_url
     })

@@ -16,7 +16,7 @@
             <!-- Product Image -->
             <div class="bg-[#fff4da] p-4 flex items-center justify-center h-48">
                 <img src="{{item.image_url or assets_url ~ item.barcode ~ '.png'}}" class="w-full h-full object-contain"
-                    onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';"
+                    onerror="if(!this.dataset.r && !this.src.includes('No_Image_Available')){this.dataset.r='1';this.src='https://knnnzxegkqnkywoeonrm.supabase.co/storage/v1/object/public/ikmimart/low_ikmimart_images/{{item.barcode}}.jpg'}else if(this.dataset.r=='1'){this.dataset.r='2';this.src='https://knnnzxegkqnkywoeonrm.supabase.co/storage/v1/object/public/ikmimart/low_ikmimart_images/{{item.barcode}}.jpeg'}else{this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}"
                     alt="{{item.name}}">
             </div>
 

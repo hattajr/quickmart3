@@ -6,12 +6,13 @@
         add .opacity-50 to #fav-{{row.id}}
         add .cursor-not-allowed to #fav-{{row.id}}
       end
+      log 'url: {{ row.image_url }}'
   ">
   <div class="w-20 flex-shrink-0 bg-gray-200">
     <img
       src="{{row.image_url or 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}}"
       alt="{{row.name}}" class="w-full h-full object-cover"
-      onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930';">
+      onerror="if(!this.dataset.r && !this.src.includes('No_Image_Available')){this.dataset.r='1';this.src='https://knnnzxegkqnkywoeonrm.supabase.co/storage/v1/object/public/ikmimart/low_ikmimart_images/{{row.barcode}}.jpg'}else if(this.dataset.r=='1'){this.dataset.r='2';this.src='https://knnnzxegkqnkywoeonrm.supabase.co/storage/v1/object/public/ikmimart/low_ikmimart_images/{{row.barcode}}.jpeg'}else{this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930'}">
   </div>
   <div class="flex-1 flex flex-col justify-between p-3 min-w-0">
     <div class="flex items-start justify-between gap-2">

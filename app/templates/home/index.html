@@ -8,8 +8,8 @@
       <div class="flex-1 relative">
         <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 border-gray-300 bg-sky-50">
           <input id="search-input" class="p-2 w-full border-none text-sm" autocomplete="off" autocorrect="off"
-            autocapitalize="off" spellcheck="false" hx-indicator="#loading" type="search" hx-get="/search"
-            hx-target="#search-result-container" hx-swap="innerHTML"
+            autocapitalize="off" spellcheck="false" type="search" hx-get="/search" hx-target="#search-result-container"
+            hx-swap="innerHTML"
             hx-trigger="keyup[key=='Enter' && this.value.length >= 3], keyup[this.value.length >= 3]" name="q"
             placeholder="Search..." clearable _="
             on input
@@ -30,7 +30,6 @@
 
         <div id="search-result-container"
           class="hidden mt-2 p-1.5 flex flex-col gap-2 absolute border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 max-h-70 w-full overflow-y-auto z-20 bg-sky-50">
-          <div id="loading">loading...</div>
         </div>
       </div>
 

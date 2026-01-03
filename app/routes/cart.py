@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-from app.config import MINIO_PRODUCT_IMAGE_URL
+from app.config import PRODUCT_IMAGE_BASE_URL
 from app.db.database import get_pg_db
 from app.utils.cart import get_cart_total
 
@@ -30,8 +30,11 @@ async def add_item_to_cart(request: Request, item_id: int):
         if row is None:
             raise HTTPException(status_code=404, detail="Item not found")
         
+        logger.debug(f"item image_url: {row['image_url']}")
+        logger.debug(f"image url is None: {row['image_url'] is None}")
         if row['image_url'] is None:
-            row['image_url'] = f"{MINIO_PRODUCT_IMAGE_URL}/{row['barcode']}.png"
+
+            row['image_url'] = f"{PRODUCT_IMAGE_BASE_URL}/{row['barcode']}.png"
 
         request.session["cart"][str(row['id'])] = dict(
             id=row['id'],
@@ -42,6 +45,7 @@ async def add_item_to_cart(request: Request, item_id: int):
         )
         row = request.session["cart"][str(row['id'])]
         logger.debug(f"Added item {item_id} to cart")
+        logger.debug(f"item image_url: {row['image_url']}")
 
         total_qty, total_price = get_cart_total(request.session["cart"])
         return templates.TemplateResponse("home/_cart_item.html", {

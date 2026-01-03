@@ -127,17 +127,24 @@ async def list_carousel_images(request: Request) -> Response:
     #     images.append(f"{MINIO_URL}/{key}")
     
     params = {"ref": "tailwind"}
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url=CAROUSEL_URL, params=params)
-        response.raise_for_status()
-        items = response.json()
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            logger.debug(f"Fetching carousel from: {CAROUSEL_URL}")
+            response = await client.get(url=CAROUSEL_URL, params=params)
+            response.raise_for_status()
+            items = response.json()
 
-    images_url = [
-        i["download_url"]
-        for i in items
-        if i["type"] == "file"
-    ]
-    logger.debug(f"Found {len(images_url)} carousel images")
+        images_url = [
+            i["download_url"]
+            for i in items
+            if i["type"] == "file"
+        ]
+        logger.debug(f"Found {len(images_url)} carousel images")
+    except Exception as e:
+        logger.error(f"Error fetching carousel images: {e}")
+        images_url = []
+    
     return templates.TemplateResponse("home/carousel.html", {
         "request": request,
         "images": images_url

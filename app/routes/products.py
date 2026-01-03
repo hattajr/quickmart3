@@ -76,7 +76,7 @@ async def search_products(request: Request, q: str, exclude_ids: Optional[str] =
         results = cursor.fetchall()
 
         if not results:
-            response = '<div disabled>No results found</div>'
+            response = '<div class="p-4 text-center text-gray-600">No results found</div>'
         else:
             items = []
             for row in results:
@@ -114,7 +114,7 @@ async def search_products(request: Request, q: str, exclude_ids: Optional[str] =
                 """
                 items.append(item_html)
             
-            response = ''.join(items)
+            response = f'<div class="p-1.5 flex flex-col gap-2">{"".join(items)}</div>'
         return HTMLResponse(content=response)
 
 

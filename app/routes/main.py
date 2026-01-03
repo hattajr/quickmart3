@@ -208,14 +208,27 @@ def initialize_session(request: Request):
 @router.post("/finish")
 async def finish_checkout(request: Request) -> Response:
     """
-    Complete checkout and save transaction data.
+    Complete checkout and save transaction data from Alpine.js cart.
     """
     logger.debug("Checkout process started")
     
-    if request.session and request.session.get("cart"):
-        session_id = request.session['session_id']
+    # Parse JSON body from Alpine.js
+    try:
+        body = await request.json()
+        cart_items = body.get('items', {})
+    except Exception as e:
+        logger.error(f"Failed to parse checkout JSON: {e}")
+        return Response(status_code=400, content="Invalid request body")
+    
+    if cart_items:
+        # Get or create session_id
+        session_id = request.session.get('session_id')
+        if not session_id:
+            session_id = secrets.token_hex(16)
+            request.session['session_id'] = session_id
         
-        for item in request.session["cart"].values():
+        # Insert sold items
+        for item in cart_items.values():
             insert_transaction(
                 session_id=session_id,
                 item_id=item['id'],
@@ -225,6 +238,7 @@ async def finish_checkout(request: Request) -> Response:
                 total_price=item['price'] * item['qty']
             )
 
+        # Insert session info
         ip_address = get_client_ip(request)
         ua_info = parse_user_agent(request)
         country = await get_country_from_ip(ip_address)
@@ -241,9 +255,7 @@ async def finish_checkout(request: Request) -> Response:
         
         logger.info(f"Checkout completed for session {session_id}")
     
-    response = Response(status_code=200)
-    response.headers["HX-Redirect"] = "/"
-    return response
+    return Response(status_code=200)
 
 
 @router.post("/feedback")

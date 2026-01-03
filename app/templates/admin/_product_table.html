@@ -15,7 +15,7 @@
         <div class="flex gap-2 justify-center">
             <button
                 class="bg-blue-500 text-white px-3 py-1 border-2 rounded border-gray-900 shadow-[2px_2px_0px] shadow-gray-900 hover:bg-blue-600 active:scale-95 cursor-pointer text-sm"
-                _="on click call #edit-modal-{{ product.id }}'s showModal()">
+                @click="document.getElementById('edit-modal-{{ product.id }}').showModal()">
                 Edit
             </button>
             <button hx-delete="/admin/products/{{ product.id }}?password={{ password }}"

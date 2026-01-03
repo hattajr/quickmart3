@@ -1,8 +1,9 @@
 """
 Product search and catalog route handlers.
 """
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from typing import Optional
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
@@ -14,18 +15,64 @@ router: APIRouter = APIRouter()
 templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
 
 
-@router.get("/search")
-async def search_products(request: Request, q: str):
+@router.get("/api/items/{item_id}")
+async def get_item_api(item_id: int):
     """
-    Search for products by name.
+    Get product data as JSON for Alpine.js cart.
     """
-    logger.debug(f"Search query: {q}")
     for conn in get_pg_db():
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s",
-            (f"%{q}%",)
+            "SELECT id, barcode, name, price, image_url FROM products WHERE id = %s",
+            (item_id,)
         )
+        row = cursor.fetchone()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        # Server-side image fallback cascade
+        img_url = row['image_url'] if row['image_url'] else f"{PRODUCT_IMAGE_BASE_URL}/{row['barcode']}.png"
+        
+        return JSONResponse(content={
+            "id": row['id'],
+            "name": row['name'],
+            "price": float(row['price']),
+            "image_url": img_url
+        })
+
+
+@router.get("/search")
+async def search_products(request: Request, q: str, exclude_ids: Optional[str] = None):
+    """
+    Search for products by name, excluding items already in cart.
+    """
+    logger.debug(f"Search query: {q}, exclude_ids: {exclude_ids}")
+    
+    for conn in get_pg_db():
+        cursor = conn.cursor()
+        
+        # Build query with optional exclusion
+        if exclude_ids and exclude_ids.strip():
+            # Parse comma-separated IDs
+            try:
+                excluded_id_list = [int(id.strip()) for id in exclude_ids.split(',') if id.strip()]
+                if excluded_id_list:
+                    placeholders = ','.join(['%s'] * len(excluded_id_list))
+                    query = f"SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s AND id NOT IN ({placeholders})"
+                    params = (f"%{q}%", *excluded_id_list)
+                else:
+                    query = "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s"
+                    params = (f"%{q}%",)
+            except ValueError:
+                # Invalid IDs, ignore exclusion
+                query = "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s"
+                params = (f"%{q}%",)
+        else:
+            query = "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s"
+            params = (f"%{q}%",)
+        
+        cursor.execute(query, params)
         results = cursor.fetchall()
 
         if not results:
@@ -42,19 +89,15 @@ async def search_products(request: Request, q: str):
                 
                 item_html = f"""
             <div id="search-item-{row['id']}"
-            hx-get="/items/{row['id']}" hx-target="#cart-container" hx-swap="beforeend"
-                class="flex border-2 rounded-md border-gray-900 h-16 bg-white"
-                _ = "
-                on load
-                    if #cart-item-{row['id']} is in document
-                    add .pointer-events-none to me
-                    add .opacity-50 to me
-                    add .cursor-not-allowed to me
-                    end
-                on click
-                add .hidden to #search-result-container
-                set #search-input's value to ''
-                focus() to #search-input
+                class="flex border-2 rounded-md border-gray-900 h-16 bg-white cursor-pointer hover:bg-gray-50"
+                @click="
+                    fetch('/api/items/{row['id']}')
+                        .then(res => res.json())
+                        .then(data => {{
+                            $store.cart.addItem(data);
+                            $store.search.close();
+                        }})
+                        .catch(err => $store.toasts.show('Failed to add item', 'error'))
                 "
                 >
                 <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">

@@ -1,11 +1,23 @@
 {% for item in items %}
-<div id="fav-{{item.item_id}}"
-  class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 max-h-7">
-  <button class="truncate max-w-[6rem] text-left text-xs" hx-get="/items/{{item.item_id}}" hx-target="#cart-container"
-    hx-swap="beforeend" _="on click
-      add .pointer-events-none to #fav-{{item.item_id}}
-      add .opacity-50 to #fav-{{item.item_id}}
-      add .cursor-not-allowed to #fav-{{item.item_id}}
+<div :id="'fav-{{item.item_id}}'" x-data
+  class="flex items-center gap-1 bg-[#EBDBB7] py-1 px-2.5 border rounded-sm border-gray-900 max-h-7 transition-all duration-200 hover:shadow-md"
+  :class="$store.cart.items[{{item.item_id}}] ? 'opacity-40 cursor-not-allowed grayscale order-last' : 'hover:scale-105 cursor-pointer'">
+  <button class="truncate max-w-[8rem] text-left text-xs font-medium w-full"
+    :disabled="!!$store.cart.items[{{item.item_id}}]" @click.prevent="
+      if (!$store.cart.items[{{item.item_id}}]) {
+        fetch('/api/items/{{item.item_id}}')
+          .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch');
+            return res.json();
+          })
+          .then(data => {
+            $store.cart.addItem(data);
+          })
+          .catch(err => {
+            console.error('Error adding item:', err);
+            $store.toasts.show('Failed to add item', 'error');
+          })
+      }
     ">
     {{item.item_name}}
   </button>

@@ -25,23 +25,26 @@
   <div
     class="relative bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 z-100">
     <div class="flex gap-2.5 mb-2.5">
-      <div class="flex-1 relative" x-data>
-        <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 border-gray-300 bg-sky-50">
-          <input id="search-input" class="p-2 w-full border-none text-sm" autocomplete="off" autocorrect="off"
-            autocapitalize="off" spellcheck="false" type="search" x-model="$store.search.query" hx-get="/search"
-            hx-target="#search-result-container" hx-swap="innerHTML"
+      <div class="flex-1 relative" x-data="{ isSearching: false }">
+        <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 bg-sky-50">
+          <input id="search-input" type="search" name="q" placeholder="Search..." autocomplete="off" autocorrect="off"
+            autocapitalize="off" spellcheck="false" class="p-2 w-full border-none text-sm" x-model="$store.search.query"
+            hx-get="/search" hx-target="#search-results" hx-swap="innerHTML swap:0s"
             hx-trigger="keyup[this.value.length >= 3] changed delay:200ms, keyup[key=='Enter' && this.value.length >= 3]"
-            hx-include="[name='exclude_ids']" name="q" placeholder="Search..."
-            @input="$store.search.isOpen = $store.search.query.trim().length >= 3"
-            @htmx:before-request="$store.search.isOpen = true"
-            @htmx:after-swap="$store.search.isOpen = $store.search.query.trim().length >= 3"
+            hx-include="[name='exclude_ids']" @input="$store.search.isOpen = $store.search.query.trim().length >= 3"
+            @htmx:before-request="$store.search.isOpen = true; isSearching = true"
+            @htmx:after-request="isSearching = false"
             @click.outside="if (!$event.target.closest('#search-result-container')) $store.search.close()" />
           <input type="hidden" name="exclude_ids" :value="$store.cart.itemIds()" />
         </div>
 
-        <div id="search-result-container" x-show="$store.search.isOpen" style="display: none;"
-          @click.away="$store.search.close()"
-          class="mt-2 p-1.5 flex flex-col gap-2 absolute border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 max-h-70 w-full overflow-y-auto z-20 bg-sky-50">
+        <div id="search-result-container" x-show="$store.search.isOpen" x-cloak @click.away="$store.search.close()"
+          class="mt-2 absolute border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 max-h-70 w-full overflow-y-auto z-20 bg-sky-50">
+          <div x-show="isSearching" class="flex items-center justify-center gap-2 p-4">
+            <span class="material-symbols-outlined animate-spin text-gray-600">progress_activity</span>
+            <span class="text-sm text-gray-600">Searching...</span>
+          </div>
+          <div id="search-results"></div>
         </div>
       </div>
     </div>

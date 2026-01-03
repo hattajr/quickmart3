@@ -14,10 +14,17 @@
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
         integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
         crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
     <link href="/static/css/tailwind.css" rel="stylesheet">
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="7bf28e37-7e5f-4c8d-bd24-99631319f4fe"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="7bf28e37-7e5f-4c8d-bd24-99631319f4fe"></script>
 </head>
 
 <body class="bg-[#FFFDF8]">
@@ -38,7 +45,8 @@
                         {%include 'home/about.html' %}
 
                         <h3 class="text-base md:text-xl tracking-tight">
-                            <button class="hover:opacity-80 transition-opacity" _="on click call #about's showModal()">
+                            <button x-data @click="document.getElementById('about').showModal()"
+                                class="hover:opacity-80 transition-opacity">
                                 <span class="text-gray-800">About</span>
                             </button>
                         </h3>
@@ -56,11 +64,12 @@
                         </h3>
 
                         <h3 class="text-base md:text-xl tracking-tight">
-                            <button _="on click 
-                set #feedback-textarea's value to ''
-                set #feedback-response's innerHTML to ''
-                call #feedback's showModal()
-              " class="bg-blue-500 text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:bg-blue-600 p-2">
+                            <button x-data @click="
+                              document.getElementById('feedback-textarea').value = '';
+                              document.getElementById('feedback-response').innerHTML = '';
+                              document.getElementById('feedback').showModal();
+                            "
+                                class="bg-blue-500 text-white text-md flex flex-row gap-2 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:bg-blue-600 p-2">
                                 <span class="text-white">Chat</span>
                             </button>
                         </h3>
@@ -74,11 +83,11 @@
         {% block main_content %}{% endblock %}
     </div>
 
-    <dialog id="feedback" _="on submit wait 1s then call #feedback's close()"
+    <dialog id="feedback" x-data @submit="setTimeout(() => $el.close(), 1000)"
         class="fixed inset-0 m-auto min-w-3/4 p-4 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900  backdrop:backdrop-blur-sm backdrop:bg-black/30">
         <div class="flex justify-between items-center mb-2 font-bold text-xl">
             <span>Kirim Pesan</span>
-            <button autofocus _="on click call #feedback's close()">
+            <button autofocus @click="$el.closest('dialog').close()">
                 <span class="material-symbols-outlined text-2xl">close</span>
             </button>
         </div>
@@ -105,6 +114,119 @@
     {% endblock %}
 
     <script>
+        // Alpine.js Cart Store with localStorage persistence
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('cart', {
+                init() {
+                    // Load from localStorage if exists
+                    const saved = localStorage.getItem('cart_items');
+                    if (saved) {
+                        try {
+                            this.items = JSON.parse(saved);
+                        } catch (e) {
+                            this.items = {};
+                        }
+                    }
+
+                    // Watch for changes and save to localStorage
+                    Alpine.effect(() => {
+                        localStorage.setItem('cart_items', JSON.stringify(this.items));
+                    });
+                },
+
+                items: {},
+
+                addItem(productData) {
+                    if (!this.items[productData.id]) {
+                        this.items = {
+                            ...this.items,
+                            [productData.id]: {
+                                id: productData.id,
+                                name: productData.name,
+                                price: productData.price,
+                                image_url: productData.image_url,
+                                qty: 1
+                            }
+                        };
+                    }
+                },
+
+                removeItem(id) {
+                    const newItems = { ...this.items };
+                    delete newItems[id];
+                    this.items = newItems;
+                },
+
+                increaseQty(id) {
+                    if (this.items[id]) {
+                        this.items = {
+                            ...this.items,
+                            [id]: { ...this.items[id], qty: this.items[id].qty + 1 }
+                        };
+                    }
+                },
+
+                decreaseQty(id) {
+                    if (this.items[id] && this.items[id].qty > 1) {
+                        this.items = {
+                            ...this.items,
+                            [id]: { ...this.items[id], qty: this.items[id].qty - 1 }
+                        };
+                    }
+                },
+
+                clear() {
+                    this.items = {};
+                },
+
+                totalQty() {
+                    return Object.values(this.items).reduce((sum, item) => sum + item.qty, 0);
+                },
+
+                totalPrice() {
+                    return Object.values(this.items).reduce((sum, item) => sum + (item.price * item.qty), 0);
+                },
+
+                itemIds() {
+                    return Object.keys(this.items).join(',');
+                },
+
+                getSubtotal(id) {
+                    return this.items[id] ? this.items[id].price * this.items[id].qty : 0;
+                }
+            });
+
+            // Toast Store
+            Alpine.store('toasts', {
+                items: [],
+                counter: 0,
+
+                show(message, type = 'success') {
+                    const id = ++this.counter;
+                    this.items.push({ id, message, type });
+                    setTimeout(() => {
+                        this.items = this.items.filter(item => item.id !== id);
+                    }, 5000);
+                }
+            });
+
+            // Search State Store
+            Alpine.store('search', {
+                isOpen: false,
+                query: '',
+
+                open() {
+                    this.isOpen = true;
+                },
+
+                close() {
+                    this.isOpen = false;
+                    this.query = '';
+                }
+            });
+        });
+
+        // Auto-reload timer
         let timeoutId;
         function resetTimer() {
             clearTimeout(timeoutId);

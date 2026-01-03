@@ -1,8 +1,8 @@
-<dialog id="about"
+<dialog id="about" x-data
     class="fixed inset-0 m-auto w-full max-w-md p-6 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 backdrop:backdrop-blur-sm backdrop:bg-black/30">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-900">Payment & Contact</h2>
-        <button autofocus _="on click call #about's close()" class="hover:opacity-80 transition-opacity">
+        <button autofocus @click="$el.closest('dialog').close()" class="hover:opacity-80 transition-opacity">
             <span class="material-symbols-outlined text-2xl text-gray-700">close</span>
         </button>
     </div>

@@ -14,18 +14,27 @@ def get_pg_db() -> Generator[psycopg2.extensions.connection, None, None]:
     """
     Create and yield a PostgreSQL database connection.
     """
-    conn = psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        database=PG_DATABASE,
-        user=PG_USER,
-        password=PG_PASSWORD,
-        cursor_factory=RealDictCursor
-    )
     try:
-        yield conn
-    finally:
-        conn.close()
+        conn = psycopg2.connect(
+            host=PG_HOST,
+            port=PG_PORT,
+            database=PG_DATABASE,
+            user=PG_USER,
+            password=PG_PASSWORD,
+            cursor_factory=RealDictCursor,
+            connect_timeout=5,  # 5 seconds connection timeout
+            options="-c statement_timeout=10000"  # 10 seconds query timeout
+        )
+        try:
+            yield conn
+        finally:
+            conn.close()
+    except psycopg2.OperationalError as e:
+        logger.error(f"Database connection failed: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected database error: {e}")
+        raise
 
 
 def insert_transaction(

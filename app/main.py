@@ -18,6 +18,7 @@ from app.routes import admin as admin_routes
 from app.routes import cart as cart_routes
 from app.routes import main as main_routes
 from app.routes import products as products_routes
+from app.db.database import get_pg_db
 import subprocess
 from contextlib import asynccontextmanager
 
@@ -37,6 +38,20 @@ async def lifespan(app: FastAPI):
     on app startup, and will run code after `yeld` on app shutdown.
     """
 
+    # Validate database connection
+    logger.info("Validating database connection...")
+    try:
+        for conn in get_pg_db():
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            logger.info("✓ Database connection successful")
+    except Exception as e:
+        logger.error(f"✗ Database connection failed: {e}")
+        logger.warning("Application will start but database operations may fail")
+
+    # Compile Tailwind CSS
+    logger.info("Compiling Tailwind CSS...")
     try:
         subprocess.run([
             "uv",
@@ -50,11 +65,14 @@ async def lifespan(app: FastAPI):
             "-o",
             "app/static/css/tailwind.css",
             "--minify"
-        ])
+        ], check=True)
+        logger.info("✓ Tailwind CSS compiled successfully")
     except Exception as e:
-        print(f"Error running tailwindcss: {e}")
+        logger.error(f"✗ Error running tailwindcss: {e}")
 
     yield
+    
+    logger.info("Application shutting down...")
 
 app = FastAPI(lifespan=lifespan, title="QuickMart POS", version="1.0.0")
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)

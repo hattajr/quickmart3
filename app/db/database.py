@@ -62,6 +62,36 @@ def insert_transaction(
         logger.debug(f"Inserted transaction for item {item_name} (ID: {item_id})")
 
 
+def insert_transactions_batch(session_id: str, items: list[dict]) -> None:
+    """
+    Batch insert all cart items in a single database query.
+    
+    Args:
+        session_id: Session identifier
+        items: List of cart item dictionaries with keys: id, name, price, qty
+    """
+    if not items:
+        return
+    
+    values = [
+        (session_id, item['id'], item['name'], item['price'], item['qty'], item['price'] * item['qty'])
+        for item in items
+    ]
+    
+    for db in get_pg_db():
+        cursor = db.cursor()
+        cursor.executemany(
+            """
+            INSERT INTO sold_items 
+            (session_id, item_id, item_name, price_at_purchase, quantity, total_price) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            values
+        )
+        db.commit()
+        logger.debug(f"Batch inserted {len(items)} transactions for session {session_id}")
+
+
 def insert_sold_session(
     session_id: str,
     ip_address: str,

@@ -121,24 +121,20 @@
               $store.toasts.show('Cart is empty', 'error');
               return;
             }
+            // Send checkout request (fire-and-forget)
             fetch('/finish', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ items: $store.cart.items })
-            })
-            .then(res => {
-              if (res.ok) {
-                $el.closest('#main-content').querySelector('#thankyou-modal').showModal();
-                setTimeout(() => {
-                  $el.closest('#main-content').querySelector('#thankyou-modal').close();
-                  $store.cart.clear();
-                  location.href = '/';
-                }, 5000);
-              } else {
-                $store.toasts.show('Checkout failed', 'error');
-              }
-            })
-            .catch(err => $store.toasts.show('Network error', 'error'))
+            }).catch(err => console.error('Checkout request failed:', err));
+            
+            // Show thank you modal immediately
+            $el.closest('#main-content').querySelector('#thankyou-modal').showModal();
+            setTimeout(() => {
+              $el.closest('#main-content').querySelector('#thankyou-modal').close();
+              $store.cart.clear();
+              location.href = '/';
+            }, 5000);
           ">
           Finish
         </button>

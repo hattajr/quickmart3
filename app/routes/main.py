@@ -8,13 +8,13 @@ from typing import Optional
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Request, Form, BackgroundTasks
 from fastapi.responses import Response, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-from app.db.database import insert_transaction, insert_sold_session, get_pg_db
-from app.utils import get_client_ip, parse_user_agent, get_country_from_ip
+from app.db.database import insert_transactions_batch, insert_sold_session, get_pg_db
+from app.utils import get_client_ip, parse_user_agent
 from app.config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
@@ -205,56 +205,82 @@ def initialize_session(request: Request):
     return templates.TemplateResponse(request, 'home/index.html', context={})
 
 
+def process_checkout(
+    session_id: str,
+    cart_items: list[dict],
+    ip_address: str,
+    user_agent: str,
+    device_type: str,
+    browser: str,
+    os: str
+) -> None:
+    """
+    Background task: Process checkout and save to database.
+    Logs errors but does not raise them to avoid blocking.
+    """
+    try:
+        # Batch insert all cart items
+        insert_transactions_batch(session_id=session_id, items=cart_items)
+        
+        # Insert session metadata with no country
+        insert_sold_session(
+            session_id=session_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            device_type=device_type,
+            browser=browser,
+            os=os,
+            country=None
+        )
+        
+        logger.info(f"Background checkout completed for session {session_id}")
+    except Exception as e:
+        logger.error(f"Background checkout failed for session {session_id}: {e}")
+
+
 @router.post("/finish")
-async def finish_checkout(request: Request) -> Response:
+async def finish_checkout(request: Request, background_tasks: BackgroundTasks) -> Response:
     """
     Complete checkout and save transaction data from Alpine.js cart.
+    Processes insertions in background for instant user response.
     """
     logger.debug("Checkout process started")
     
     # Parse JSON body from Alpine.js
     try:
         body = await request.json()
-        cart_items = body.get('items', {})
+        cart_items_dict = body.get('items', {})
     except Exception as e:
         logger.error(f"Failed to parse checkout JSON: {e}")
         return Response(status_code=400, content="Invalid request body")
     
-    if cart_items:
+    if cart_items_dict:
         # Get or create session_id
         session_id = request.session.get('session_id')
         if not session_id:
             session_id = secrets.token_hex(16)
             request.session['session_id'] = session_id
         
-        # Insert sold items
-        for item in cart_items.values():
-            insert_transaction(
-                session_id=session_id,
-                item_id=item['id'],
-                item_name=item['name'],
-                price_at_purchase=item['price'],
-                quantity=item['qty'],
-                total_price=item['price'] * item['qty']
-            )
-
-        # Insert session info
+        # Capture request data before background task
         ip_address = get_client_ip(request)
         ua_info = parse_user_agent(request)
-        country = await get_country_from_ip(ip_address)
+        cart_items_list = list(cart_items_dict.values())
         
-        insert_sold_session(
+        # Schedule background processing
+        background_tasks.add_task(
+            process_checkout,
             session_id=session_id,
+            cart_items=cart_items_list,
             ip_address=ip_address,
             user_agent=ua_info['user_agent'],
             device_type=ua_info['device_type'],
             browser=ua_info['browser'],
-            os=ua_info['os'],
-            country=country
+            os=ua_info['os']
         )
         
-        logger.info(f"Checkout completed for session {session_id}")
+        logger.debug(f"Checkout scheduled for background processing: {session_id}")
     
+    # Return immediately - processing happens in background
     return Response(status_code=200)
 
 

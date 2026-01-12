@@ -107,7 +107,7 @@ class ProductSearchCache:
         results = process.extract(
             query,
             texts,
-            scorer=fuzz.WRatio,
+            scorer=fuzz.partial_ratio,
             processor=utils.default_process,
             score_cutoff=FUZZY_SEARCH_THRESHOLD,
             limit=20  # Limit to top 20 results

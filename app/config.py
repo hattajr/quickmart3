@@ -45,4 +45,4 @@ SESSION_SECRET_KEY: str = os.getenv("SESSION_SECRET_KEY", "your-super-secret-key
 ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")
 
 # Fuzzy search configuration
-FUZZY_SEARCH_THRESHOLD: int = int(os.getenv("FUZZY_SEARCH_THRESHOLD", "69"))
+FUZZY_SEARCH_THRESHOLD: int = int(os.getenv("FUZZY_SEARCH_THRESHOLD", "60"))

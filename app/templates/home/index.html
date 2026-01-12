@@ -30,8 +30,8 @@
           <input id="search-input" type="search" name="q" placeholder="Search..." autocomplete="off" autocorrect="off"
             autocapitalize="off" spellcheck="false" class="p-2 w-full border-none text-sm" x-model="$store.search.query"
             hx-get="/search" hx-target="#search-results" hx-swap="innerHTML swap:0s"
-            hx-trigger="keyup[this.value.length >= 3] changed delay:200ms, keyup[key=='Enter' && this.value.length >= 3]"
-            hx-include="[name='exclude_ids']" @input="$store.search.isOpen = $store.search.query.trim().length >= 3"
+            hx-trigger="keyup[this.value.length >= 2] changed delay:70ms, keyup[key=='Enter' && this.value.length >= 2]"
+            hx-include="[name='exclude_ids']" @input="$store.search.isOpen = $store.search.query.trim().length >= 2"
             @htmx:before-request="$store.search.isOpen = true; isSearching = true"
             @htmx:after-request="isSearching = false"
             @click.outside="if (!$event.target.closest('#search-result-container')) $store.search.close()" />

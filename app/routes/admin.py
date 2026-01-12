@@ -9,6 +9,7 @@ from psycopg2 import IntegrityError
 
 from app.config import ADMIN_PASSWORD
 from app.db.database import get_pg_db
+from app.utils.product_cache import product_cache
 
 
 router: APIRouter = APIRouter()
@@ -138,6 +139,7 @@ async def add_product(
                 (barcode, name, brand, price, unit, stock, description, keyword, image_url)
             )
             conn.commit()
+            product_cache.invalidate()
             logger.info(f"Product added: {name}")
             
             # Return updated table with success toast
@@ -221,6 +223,7 @@ async def edit_product(
                 (barcode, name, brand, price, unit, stock, description, keyword, image_url, product_id)
             )
             conn.commit()
+            product_cache.invalidate()
             logger.info(f"Product updated: {name} (ID: {product_id})")
             
             # Return updated table with success toast
@@ -272,6 +275,7 @@ async def delete_product(
         try:
             cursor.execute("DELETE FROM products WHERE id = %s", (product_id,))
             conn.commit()
+            product_cache.invalidate()
             logger.info(f"Product deleted: ID {product_id}")
             
             # Return empty string to remove the row

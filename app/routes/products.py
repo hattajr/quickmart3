@@ -2,18 +2,78 @@
 Product search and catalog route handlers.
 """
 from typing import Optional
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
 from app.config import PRODUCT_IMAGE_BASE_URL
 from app.db.database import get_pg_db
 from app.utils.product_cache import product_cache
+from app.utils import get_client_ip
 
 
 router: APIRouter = APIRouter()
 templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
+
+
+def log_search_selection(
+    session_id: str,
+    product_id: int,
+    product_name: str,
+    search_query: str,
+    ip_address: str
+) -> None:
+    """
+    Background task: Log search selection to database.
+    """
+    try:
+        for conn in get_pg_db():
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO search_selections 
+                (session_id, product_id, product_name, search_query, ip_address) 
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (session_id, product_id, product_name, search_query, ip_address)
+            )
+            conn.commit()
+        logger.info(f"Logged search selection: product_id={product_id}, query='{search_query}'")
+    except Exception as e:
+        logger.error(f"Failed to log search selection: {e}")
+
+
+@router.post("/api/log-search-selection")
+async def log_selection(request: Request, background_tasks: BackgroundTasks) -> Response:
+    """
+    Log when a user selects a product from search results.
+    """
+    try:
+        body = await request.json()
+        product_id = body.get('product_id')
+        product_name = body.get('product_name', '')
+        search_query = body.get('search_query', '')
+        
+        if not product_id:
+            return Response(status_code=400)
+        
+        session_id = request.session.get('session_id', 'unknown')
+        ip_address = get_client_ip(request)
+        
+        background_tasks.add_task(
+            log_search_selection,
+            session_id=session_id,
+            product_id=product_id,
+            product_name=product_name,
+            search_query=search_query,
+            ip_address=ip_address
+        )
+        
+        return Response(status_code=200)
+    except Exception as e:
+        logger.error(f"Error in log_selection endpoint: {e}")
+        return Response(status_code=500)
 
 
 @router.get("/api/items/{item_id}")
@@ -98,6 +158,15 @@ async def search_products(request: Request, q: str, exclude_ids: Optional[str] =
                     .then(data => {{
                         $store.cart.addItem(data);
                         $store.search.close();
+                        fetch('/api/log-search-selection', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{
+                                product_id: {row['id']},
+                                product_name: data.name,
+                                search_query: $store.search.query
+                            }})
+                        }}).catch(err => console.error('Log failed:', err));
                     }})
                     .catch(err => $store.toasts.show('Failed to add item', 'error'))
             "

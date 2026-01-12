@@ -9,6 +9,7 @@ from loguru import logger
 
 from app.config import PRODUCT_IMAGE_BASE_URL
 from app.db.database import get_pg_db
+from app.utils.product_cache import product_cache
 
 
 router: APIRouter = APIRouter()
@@ -45,76 +46,77 @@ async def get_item_api(item_id: int):
 @router.get("/search")
 async def search_products(request: Request, q: str, exclude_ids: Optional[str] = None):
     """
-    Search for products by name, excluding items already in cart.
+    Search for products using fuzzy matching, excluding items already in cart.
     """
     logger.debug(f"Search query: {q}, exclude_ids: {exclude_ids}")
     
+    # Parse excluded IDs
+    excluded_id_list = []
+    if exclude_ids and exclude_ids.strip():
+        try:
+            excluded_id_list = [int(id.strip()) for id in exclude_ids.split(',') if id.strip()]
+        except ValueError:
+            logger.warning(f"Invalid exclude_ids format: {exclude_ids}")
+    
+    # Perform fuzzy search
+    ranked_ids = product_cache.fuzzy_search(q, exclude_ids=excluded_id_list if excluded_id_list else None)
+    
+    if not ranked_ids:
+        response = '<div class="p-4 text-center text-gray-600">No results found</div>'
+        return HTMLResponse(content=response)
+    
+    # Query database for ranked products
     for conn in get_pg_db():
         cursor = conn.cursor()
-        
-        # Build query with optional exclusion
-        if exclude_ids and exclude_ids.strip():
-            # Parse comma-separated IDs
-            try:
-                excluded_id_list = [int(id.strip()) for id in exclude_ids.split(',') if id.strip()]
-                if excluded_id_list:
-                    placeholders = ','.join(['%s'] * len(excluded_id_list))
-                    query = f"SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s AND id NOT IN ({placeholders})"
-                    params = (f"%{q}%", *excluded_id_list)
-                else:
-                    query = "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s"
-                    params = (f"%{q}%",)
-            except ValueError:
-                # Invalid IDs, ignore exclusion
-                query = "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s"
-                params = (f"%{q}%",)
-        else:
-            query = "SELECT id, barcode, name, image_url FROM products WHERE name ILIKE %s"
-            params = (f"%{q}%",)
-        
-        cursor.execute(query, params)
+        cursor.execute(
+            "SELECT id, barcode, name, image_url FROM products WHERE id = ANY(%s)",
+            (ranked_ids,)
+        )
         results = cursor.fetchall()
-
-        if not results:
-            response = '<div class="p-4 text-center text-gray-600">No results found</div>'
-        else:
-            items = []
-            for row in results:
-                # Construct image URL with fallback
-                img_url = row['image_url'] if row['image_url'] else f"{PRODUCT_IMAGE_BASE_URL}/{row['barcode']}.png"
-                logger.debug(f"Product ID {row['id']} image URL: {img_url}")
-                barcode = row['barcode']
-                base_url = PRODUCT_IMAGE_BASE_URL
-                fallback_url = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"
-                
-                item_html = f"""
-            <div id="search-item-{row['id']}"
-                class="flex border-2 rounded-md border-gray-900 h-16 bg-white cursor-pointer hover:bg-gray-50"
-                @click="
-                    fetch('/api/items/{row['id']}')
-                        .then(res => res.json())
-                        .then(data => {{
-                            $store.cart.addItem(data);
-                            $store.search.close();
-                        }})
-                        .catch(err => $store.toasts.show('Failed to add item', 'error'))
-                "
-                >
-                <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
-                <img src="{img_url}"
-                    onerror="if(!this.dataset.r){{this.dataset.r='1';this.src='{base_url}/{barcode}.jpg'}}else if(this.dataset.r=='1'){{this.dataset.r='2';this.src='{base_url}/{barcode}.jpeg'}}else{{this.onerror=null;this.src='{fallback_url}'}}"
-                     class="object-cover w-full h-full rounded-md" />
-                </div>
-                <div class="flex-1 p-2 flex items-center min-w-0">
-                <div class="truncate w-full">
-                    {row['name']}
-                </div>
-                </div>
-            </div>
-                """
-                items.append(item_html)
+        
+        # Create ID->row mapping
+        row_map = {row['id']: row for row in results}
+        
+        # Reorder results to match fuzzy ranking
+        ordered_results = [row_map[pid] for pid in ranked_ids if pid in row_map]
+        
+        items = []
+        for row in ordered_results:
+            # Construct image URL with fallback
+            img_url = row['image_url'] if row['image_url'] else f"{PRODUCT_IMAGE_BASE_URL}/{row['barcode']}.png"
+            logger.debug(f"Product ID {row['id']} image URL: {img_url}")
+            barcode = row['barcode']
+            base_url = PRODUCT_IMAGE_BASE_URL
+            fallback_url = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"
             
-            response = f'<div class="p-1.5 flex flex-col gap-2">{"".join(items)}</div>'
+            item_html = f"""
+        <div id="search-item-{row['id']}"
+            class="flex border-2 rounded-md border-gray-900 h-16 bg-white cursor-pointer hover:bg-gray-50"
+            @click="
+                fetch('/api/items/{row['id']}')
+                    .then(res => res.json())
+                    .then(data => {{
+                        $store.cart.addItem(data);
+                        $store.search.close();
+                    }})
+                    .catch(err => $store.toasts.show('Failed to add item', 'error'))
+            "
+            >
+            <div class="aspect-[3/4] w-16 overflow-hidden p-1 flex-shrink-0">
+            <img src="{img_url}"
+                onerror="if(!this.dataset.r){{this.dataset.r='1';this.src='{base_url}/{barcode}.jpg'}}else if(this.dataset.r=='1'){{this.dataset.r='2';this.src='{base_url}/{barcode}.jpeg'}}else{{this.onerror=null;this.src='{fallback_url}'}}"
+                 class="object-cover w-full h-full rounded-md" />
+            </div>
+            <div class="flex-1 p-2 flex items-center min-w-0">
+            <div class="truncate w-full">
+                {row['name']}
+            </div>
+            </div>
+        </div>
+            """
+            items.append(item_html)
+        
+        response = f'<div class="p-1.5 flex flex-col gap-2">{"".join(items)}</div>'
         return HTMLResponse(content=response)
 
 

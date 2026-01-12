@@ -12,7 +12,7 @@ import os
 from loguru import logger
 
 logger.remove()
-logger.add(sys.stderr, level="INFO", format="{time} {level} {message}")
+logger.add(sys.stderr, level="INFO", format="{time} {elapsed} {level} {message}")
 
 def create_migration_versioning_table(db_file_path):
     db_file_path = Path(db_file_path)

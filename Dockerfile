@@ -18,7 +18,7 @@ RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY app/ ./app/
-COPY migrations/ ./migrations/
+# COPY migrations/ ./migrations/
 
 # Create non-root user and change ownership
 RUN useradd -m -u 1000 appuser && \

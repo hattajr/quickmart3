@@ -12,6 +12,15 @@
           })
           .then(data => {
             $store.cart.addItem(data);
+            fetch('/api/log-search-selection', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                product_id: {{item.item_id}},
+                product_name: data.name,
+                search_query: ''
+              })
+            }).catch(err => console.error('Log failed:', err));
           })
           .catch(err => {
             console.error('Error adding item:', err);

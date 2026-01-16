@@ -2,12 +2,12 @@
 Checkout and session management route handlers.
 """
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
+from urllib.parse import quote
 
 import boto3
 from botocore.client import Config
-from botocore.exceptions import ClientError
 from fastapi import APIRouter, Request, Form, BackgroundTasks
 from fastapi.responses import Response, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -22,6 +22,7 @@ from app.config import (
     S3_BUCKET_NAME,
     S3_CAROUSEL_IMAGES_FOLDER,
     S3_REGION,
+    CAROUSEL_IMAGE_BASE_URL,
 )
 
 
@@ -128,7 +129,7 @@ def fetch_carousel_images_from_s3() -> tuple[list[str], Optional[datetime]]:
     Fetch carousel images from Supabase S3 storage.
     
     Returns:
-        Tuple of (list of presigned URLs sorted alphabetically, latest modification datetime)
+        Tuple of (list of public URLs sorted alphabetically, latest modification datetime)
     """
     try:
         s3_client = get_s3_client()
@@ -153,7 +154,7 @@ def fetch_carousel_images_from_s3() -> tuple[list[str], Optional[datetime]]:
             for obj in response['Contents']
             if obj['Key'] != prefix and 
                not obj['Key'].endswith('/') and
-               obj['Key'].lower().endswith(('.png', '.jpg', '.jpeg'))
+               obj['Key'].lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif'))
         ]
         
         if not image_objects:
@@ -166,27 +167,18 @@ def fetch_carousel_images_from_s3() -> tuple[list[str], Optional[datetime]]:
         # Sort by filename (case-insensitive)
         image_objects.sort(key=lambda obj: obj['Key'].split('/')[-1].lower())
         
-        # Generate presigned URLs (valid for 24 hours)
+        # Build public URLs (no expiration)
         images = []
         for obj in image_objects:
             key = obj['Key']
-            try:
-                url = s3_client.generate_presigned_url(
-                    'get_object',
-                    Params={'Bucket': S3_BUCKET_NAME, 'Key': key},
-                    ExpiresIn=86400  # 24 hours
-                )
-                images.append(url)
-                logger.debug(f"Generated presigned URL for: {key.split('/')[-1]}")
-            except ClientError as e:
-                logger.error(f"Error generating presigned URL for {key}: {e}")
+            filename = key.split('/')[-1]
+            # URL encode filename to handle spaces and special characters
+            url = f"{CAROUSEL_IMAGE_BASE_URL}/{quote(filename)}"
+            images.append(url)
+            logger.debug(f"Generated public URL for: {filename}")
         
         logger.info(f"Fetched {len(images)} carousel images from S3 (latest modified: {latest_modified})")
         return images, latest_modified
-        
-    except ClientError as e:
-        logger.error(f"S3 client error: {e}")
-        return [], None
     except Exception as e:
         logger.error(f"Unexpected error fetching carousel images: {e}")
         return [], None
@@ -324,48 +316,42 @@ async def list_carousel_images(request: Request) -> Response:
     Fetch and display carousel images from Supabase S3 with modification-time based caching.
     Only refetches if new files have been added/modified in the carousel folder.
     """
-    # Check if there are any new or modified files
+    images_url: list[str] = []
+    
+    # Fast path: if no cache exists, fetch directly (skip timestamp check)
+    if carousel_cache.get() is None:
+        logger.debug("No carousel cache found, fetching from S3...")
+        images_url, last_modified = fetch_carousel_images_from_s3()
+        if images_url and last_modified:
+            carousel_cache.set(images_url, last_modified)
+        return templates.TemplateResponse("home/carousel.html", {
+            "request": request,
+            "images": images_url
+        })
+    
+    # Cache exists - check if S3 has newer files
     latest_s3_modified = get_latest_carousel_modification_time()
     cached_last_modified = carousel_cache.get_last_modified()
     
-    # Determine if we need to refresh the cache
-    should_refresh = False
-    
-    if carousel_cache.get() is None:
-        # No cache exists
-        logger.debug("No carousel cache found, fetching from S3...")
-        should_refresh = True
-    elif latest_s3_modified is None:
-        # No files in S3 (empty folder)
+    if latest_s3_modified is None:
+        # No files in S3 (empty folder) - clear cache if it had files
         logger.debug("No files in S3 carousel folder")
+        carousel_cache.clear()
         images_url = []
-    elif cached_last_modified is None:
-        # Cache exists but no timestamp (shouldn't happen, but handle it)
-        logger.debug("Cache exists but no timestamp, refreshing...")
-        should_refresh = True
-    elif latest_s3_modified > cached_last_modified:
+    elif cached_last_modified is None or latest_s3_modified > cached_last_modified:
         # New or modified files detected
-        logger.info(f"New carousel files detected! S3: {latest_s3_modified}, Cache: {cached_last_modified}")
-        should_refresh = True
+        logger.info(f"Carousel files changed! S3: {latest_s3_modified}, Cache: {cached_last_modified}")
+        images_url, last_modified = fetch_carousel_images_from_s3()
+        if images_url and last_modified:
+            carousel_cache.set(images_url, last_modified)
     else:
         # Cache is up to date
         logger.debug(f"Carousel cache is up to date (last modified: {cached_last_modified})")
-        images_url = carousel_cache.get()
-    
-    # Refresh cache if needed
-    if should_refresh and latest_s3_modified is not None:
-        images_url, last_modified = fetch_carousel_images_from_s3()
-        
-        # Update cache with modification timestamp
-        if images_url and last_modified:
-            carousel_cache.set(images_url, last_modified)
-    elif should_refresh and latest_s3_modified is None:
-        # No files to cache
-        images_url = []
+        images_url = carousel_cache.get() or []
     
     return templates.TemplateResponse("home/carousel.html", {
         "request": request,
-        "images": images_url if 'images_url' in locals() else []
+        "images": images_url
     })
 
 

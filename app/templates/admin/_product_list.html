@@ -1,13 +1,10 @@
-<div class="bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-4" _="on load 
-        if #password-modal is in document
-            call #password-modal's close()
-        end
-    ">
+<div class="bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-4" x-data
+    x-init="if (document.getElementById('password-modal')) document.getElementById('password-modal').close()">
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-3xl font-bold">Product Management</h1>
         <button
             class="bg-green-500 text-white font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-green-600 active:scale-95 cursor-pointer"
-            _="on click call #add-modal's showModal()">
+            @click="document.getElementById('add-modal').showModal()">
             + Add Product
         </button>
     </div>
@@ -28,48 +25,42 @@
         <table class="w-full border-2 border-gray-900">
             <thead class="bg-gray-200">
                 <tr>
-                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300" _="on click 
-                            if #sort-by's value == 'id' then
-                                if #sort-order's value == 'asc' then
-                                    set #sort-order's value to 'desc'
-                                else
-                                    set #sort-order's value to 'asc'
-                                end
-                            else
-                                set #sort-by's value to 'id'
-                                set #sort-order's value to 'asc'
-                            end
-                            trigger change on #sort-by
+                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300" @click="
+                            let sortBy = document.getElementById('sort-by');
+                            let sortOrder = document.getElementById('sort-order');
+                            if (sortBy.value === 'id') {
+                                sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                sortBy.value = 'id';
+                                sortOrder.value = 'asc';
+                            }
+                            sortBy.dispatchEvent(new Event('change'));
                         ">
                         ID {% if sort_by == 'id' %}{{ '▲' if sort_order == 'asc' else '▼' }}{% endif %}
                     </th>
-                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300" _="on click 
-                            if #sort-by's value == 'name' then
-                                if #sort-order's value == 'asc' then
-                                    set #sort-order's value to 'desc'
-                                else
-                                    set #sort-order's value to 'asc'
-                                end
-                            else
-                                set #sort-by's value to 'name'
-                                set #sort-order's value to 'asc'
-                            end
-                            trigger change on #sort-by
+                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300" @click="
+                            let sortBy = document.getElementById('sort-by');
+                            let sortOrder = document.getElementById('sort-order');
+                            if (sortBy.value === 'name') {
+                                sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                sortBy.value = 'name';
+                                sortOrder.value = 'asc';
+                            }
+                            sortBy.dispatchEvent(new Event('change'));
                         ">
                         Name {% if sort_by == 'name' %}{{ '▲' if sort_order == 'asc' else '▼' }}{% endif %}
                     </th>
-                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300" _="on click 
-                            if #sort-by's value == 'price' then
-                                if #sort-order's value == 'asc' then
-                                    set #sort-order's value to 'desc'
-                                else
-                                    set #sort-order's value to 'asc'
-                                end
-                            else
-                                set #sort-by's value to 'price'
-                                set #sort-order's value to 'asc'
-                            end
-                            trigger change on #sort-by
+                    <th class="border-2 border-gray-900 p-2 text-left cursor-pointer hover:bg-gray-300" @click="
+                            let sortBy = document.getElementById('sort-by');
+                            let sortOrder = document.getElementById('sort-order');
+                            if (sortBy.value === 'price') {
+                                sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                sortBy.value = 'price';
+                                sortOrder.value = 'asc';
+                            }
+                            sortBy.dispatchEvent(new Event('change'));
                         ">
                         Price {% if sort_by == 'price' %}{{ '▲' if sort_order == 'asc' else '▼' }}{% endif %}
                     </th>

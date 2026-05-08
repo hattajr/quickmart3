@@ -2,7 +2,7 @@
     class="fixed inset-0 m-auto w-full max-w-2xl p-6 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 backdrop:backdrop-blur-sm backdrop:bg-black/30">
     <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold">Add New Product</h2>
-        <button _="on click call #add-modal's close()" class="hover:opacity-80">
+        <button @click="$el.closest('dialog').close()" class="hover:opacity-80">
             <span class="material-symbols-outlined text-2xl">close</span>
         </button>
     </div>
@@ -54,12 +54,12 @@
         <div class="flex gap-2 justify-end">
             <button type="button"
                 class="bg-gray-300 text-gray-800 font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-gray-400 active:scale-95 cursor-pointer"
-                _="on click call #add-modal's close()">
+                @click="$el.closest('dialog').close()">
                 Cancel
             </button>
             <button type="submit"
                 class="bg-green-500 text-white font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-green-600 active:scale-95 cursor-pointer"
-                _="on htmx:afterRequest if detail.successful call #add-modal's close()">
+                @htmx:after-request="if ($event.detail.successful) $el.closest('dialog').close()">
                 Add Product
             </button>
         </div>

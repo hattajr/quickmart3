@@ -1,0 +1,14 @@
+dbs:
+  - path: /data/quickmart.sqlite3
+    replicas:
+      - type: s3
+        endpoint: ${S3_ENDPOINT_URL}
+        bucket: sqlite-backup
+        path: litestream/quickmart
+        region: ${S3_REGION}
+        access-key-id: ${AWS_ACCESS_KEY_ID}
+        secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+        force-path-style: true
+        sync-interval: 1h
+        snapshot-interval: 24h
+        retention: 72h

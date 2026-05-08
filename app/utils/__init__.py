@@ -1,6 +1,7 @@
 """
 Utility functions for request handling and client information.
 """
+
 import httpx
 from fastapi import Request
 from loguru import logger
@@ -14,7 +15,7 @@ def get_client_ip(request: Request) -> str:
     x_forwarded_for = request.headers.get("X-Forwarded-For")
     if x_forwarded_for:
         return x_forwarded_for.split(",")[0].strip()
-    return request.client.host
+    return request.client.host if request.client else ""
 
 
 def get_user_agent(request: Request) -> str:
@@ -30,14 +31,14 @@ def parse_user_agent(request: Request) -> dict[str, str]:
     """
     user_agent_string: str = get_user_agent(request)
     user_agent = parse(user_agent_string)
-    
+
     device_type: str = "mobile" if user_agent.is_mobile else "tablet" if user_agent.is_tablet else "desktop"
-    
+
     return {
         "user_agent": user_agent_string,
         "device_type": device_type,
         "browser": f"{user_agent.browser.family} {user_agent.browser.version_string}",
-        "os": f"{user_agent.os.family} {user_agent.os.version_string}"
+        "os": f"{user_agent.os.family} {user_agent.os.version_string}",
     }
 
 

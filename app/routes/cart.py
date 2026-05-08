@@ -1,6 +1,7 @@
 """
 Shopping cart related route handlers.
 """
+
 from fastapi import APIRouter
 
 router: APIRouter = APIRouter()

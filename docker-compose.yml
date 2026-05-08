@@ -1,0 +1,63 @@
+services:
+  restore:
+    image: litestream/litestream:latest
+    user: "1000:1000"
+    volumes:
+      - ./data:/data
+      - ./litestream.yml:/etc/litestream.yml
+    command: restore -if-replica-exists -if-db-not-exists /data/quickmart.sqlite3
+    environment:
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_REGION: ${S3_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+  app:
+    build: .
+    ports:
+      - "8756:8756"
+    volumes:
+      - ./data:/data
+    environment:
+      SQLITE_PATH: /data/quickmart.sqlite3
+      SQLITE_DIR: /data
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_REGION: ${S3_REGION}
+      BUCKET_NAME: ${BUCKET_NAME}
+      PRODUCT_IMAGES_FOLDER: ${PRODUCT_IMAGES_FOLDER}
+      CAROUSEL_IMAGES_FOLDER: ${CAROUSEL_IMAGES_FOLDER}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      RELOAD: "0"
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+
+  litestream:
+    image: litestream/litestream:latest
+    user: "1000:1000"
+    volumes:
+      - ./data:/data
+      - ./litestream.yml:/etc/litestream.yml
+    command: replicate
+    environment:
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_REGION: ${S3_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+
+  sqlite-web:
+    image: coleifer/sqlite-web:latest
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./data:/data
+    command: sqlite_web -H 0.0.0.0 -x /data/quickmart.sqlite3
+    depends_on:
+      restore:
+        condition: service_completed_successfully

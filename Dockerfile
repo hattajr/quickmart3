@@ -18,7 +18,7 @@ RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY app/ ./app/
-# COPY migrations/ ./migrations/
+# migrations/ is a one-shot script run manually on the host, not shipped in the image
 
 # Create non-root user and change ownership
 RUN useradd -m -u 1000 appuser && \
@@ -32,4 +32,4 @@ EXPOSE 8756
 
 # Run the application with uv
 # The Tailwind CSS compilation will happen on startup in main.py
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8756", "--workers", "3"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8756", "--workers", "1"]

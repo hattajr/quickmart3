@@ -1,8 +1,8 @@
 """
 Application configuration and environment variables.
 """
-import os
 
+import os
 
 # Supabase S3 Storage Configuration
 AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
@@ -27,16 +27,13 @@ else:
 # Fallback image for missing product images
 NO_IMAGE_URL: str = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"
 
-PG_HOST: str = os.getenv("PG_HOST", "localhost")
-PG_PORT: str = os.getenv("PG_PORT", "5432")
-PG_DATABASE: str = os.getenv("PG_DATABASE", "quickmart")
-PG_USER: str = os.getenv("PG_USER", "postgres")
-PG_PASSWORD: str = os.getenv("PG_PASSWORD", "password")
-
 APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT: int = int(os.getenv("APP_PORT", "9982"))
 WORKERS: int = int(os.getenv("WORKERS", "1"))
 RELOAD: bool = bool(int(os.getenv("RELOAD", "1")))
+
+SQLITE_DIR: str = os.getenv("SQLITE_DIR", "data")
+SQLITE_PATH: str = os.getenv("SQLITE_PATH", f"{SQLITE_DIR}/quickmart.sqlite3")
 
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")
 SESSION_SECRET_KEY: str = os.getenv("SESSION_SECRET_KEY", "[removed]")

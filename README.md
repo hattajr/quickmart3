@@ -1,93 +1,58 @@
 # quickmart3
 
-## Development Setup
+## What
 
-### Start dev
-- Design the database model at `/migrations/0001_initial.sql`
-- Run migration `uv run --env-file .env.dev -- migrations/migration.py`
-- Or you can rebuild the database with `uv run --env-file .env.dev -- migrations/migration.py --rebuild`
-- Deploy `uv run --env-file .env.dev -- app/main.py`
+QuickMart is a FastAPI app backed by local SQLite. Product and carousel images stay in Supabase Storage. SQLite backups replicate to Supabase S3-compatible storage through Litestream.
 
-## Docker Deployment
+## Stack
 
-### Build Docker Image
+- Python 3.13
+- FastAPI + Jinja2 + Uvicorn
+- SQLite
+- Litestream
+- sqlite-web
+- Tailwind CSS
+- Docker Compose
+- uv
 
-Build the Docker image using the uv-based Dockerfile:
+## Deploy
 
-```bash
-docker build -t quickmart3:latest .
-```
-
-### Run Docker Container
-
-#### Production Mode
-
-Run the container with production environment variables from `.env.prod`:
+1. Fill `.env.prod` with the production S3 values, `SESSION_SECRET_KEY`, and `ADMIN_PASSWORD`.
+2. Create the `sqlite-backup` bucket in Supabase Storage.
+3. Import the live data into `data/quickmart.sqlite3`:
 
 ```bash
-docker run -d --restart unless-stopped --env-file .env.prod -p 8756:8756 --name quickmart3-app quickmart3:latest
+PG_HOST=... \
+PG_PORT=5432 \
+PG_DATABASE=postgres \
+PG_USER=... \
+PG_PASSWORD=... \
+SQLITE_PATH=data/quickmart.sqlite3 \
+uv run migrations/import_from_supabase.py
 ```
 
-#### Development Mode
-
-Run the container with development environment variables:
+4. Start the stack:
 
 ```bash
-docker run -d --restart unless-stopped --env-file .env.dev -p 8756:8756 --name quickmart3-app quickmart3:latest
+docker compose --env-file .env.prod up -d --build
 ```
 
-#### Interactive Mode (See Logs)
+App URLs:
 
-Run the container in foreground to see logs:
+- App: `http://<host>:8756`
+- sqlite-web: `http://<host>:7756`
+
+## Dev
+
+Run the app with the dev launcher:
 
 ```bash
-docker run --env-file .env.prod -p 8756:8756 --name quickmart3-app quickmart3:latest
+uv run --env-file .env.dev run_dev.py
 ```
 
-### Manage Docker Container
+Useful `.env.dev` flags:
 
-#### View Logs
-```bash
-docker logs -f quickmart3-app
-```
+- `DEV_DB_RESET_ON_START=1` deletes the dev DB before startup
+- `DEV_DB_CLEANUP_ON_EXIT=1` deletes the dev DB on shutdown
 
-#### Stop Container
-```bash
-docker stop quickmart3-app
-```
-
-#### Start Container
-```bash
-docker start quickmart3-app
-```
-
-#### Remove Container
-```bash
-docker rm quickmart3-app
-```
-
-#### Rebuild and Restart
-```bash
-docker stop quickmart3-app
-docker rm quickmart3-app
-docker build -t quickmart3:latest .
-docker run -d --restart unless-stopped --env-file .env.prod -p 8756:8756 --name quickmart3-app quickmart3:latest
-```
-
-### Access Application
-
-Once the container is running, access the application at:
-- **URL**: `http://localhost:8756`
-- **Port**: 8756 (configured in `.env.prod`)
-
-### Docker Image Details
-
-- **Base Image**: `ghcr.io/astral-sh/uv:python3.13-bookworm-slim`
-- **Python Version**: 3.13
-- **Package Manager**: uv
-- **Web Server**: Uvicorn with 3 workers
-- **Security**: Runs as non-root user (appuser, UID 1000)
-- **Features**:
-  - Tailwind CSS auto-compilation on startup
-  - PostgreSQL database connection
-  - S3/Supabase storage integration
+Set either flag to `0` if you want to keep the local dev database between runs.

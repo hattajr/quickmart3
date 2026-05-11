@@ -51,6 +51,24 @@ services:
       restore:
         condition: service_completed_successfully
 
+  grafana:
+    build:
+      context: ./grafana
+    user: "0:0"
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - ./data:/data
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+
   sqlite-web:
     image: coleifer/sqlite-web:latest
     ports:
@@ -61,3 +79,6 @@ services:
     depends_on:
       restore:
         condition: service_completed_successfully
+
+volumes:
+  grafana-data:

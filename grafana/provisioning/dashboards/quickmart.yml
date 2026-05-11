@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: QuickMart
+    orgId: 1
+    folder: QuickMart
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

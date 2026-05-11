@@ -1,0 +1,244 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "quickmart-sqlite"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "quickmart-sqlite"
+          },
+          "queryText": "SELECT product_name AS item_name, selected_at FROM search_selections WHERE product_name IS NOT NULL ORDER BY selected_at DESC LIMIT 1",
+          "queryType": "table",
+          "rawQueryText": "SELECT product_name AS item_name, selected_at FROM search_selections WHERE product_name IS NOT NULL ORDER BY selected_at DESC LIMIT 1",
+          "refId": "A",
+          "timeColumns": []
+        }
+      ],
+      "title": "Last Search Item",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "quickmart-sqlite"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "count"
+          }
+        ]
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "quickmart-sqlite"
+          },
+          "queryText": "SELECT COALESCE(product_name, search_query) AS item_name, COUNT(*) AS count FROM search_selections GROUP BY COALESCE(product_name, search_query) ORDER BY count DESC, item_name ASC LIMIT 25",
+          "queryType": "table",
+          "rawQueryText": "SELECT COALESCE(product_name, search_query) AS item_name, COUNT(*) AS count FROM search_selections GROUP BY COALESCE(product_name, search_query) ORDER BY count DESC, item_name ASC LIMIT 25",
+          "refId": "A",
+          "timeColumns": []
+        }
+      ],
+      "title": "Search Item Counts",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "quickmart-sqlite"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "count"
+          }
+        ]
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "quickmart-sqlite"
+          },
+          "queryText": "SELECT item_name, SUM(quantity) AS count FROM sold_items WHERE timestamp >= datetime('now', '-14 day') GROUP BY item_name ORDER BY count DESC, item_name ASC",
+          "queryType": "table",
+          "rawQueryText": "SELECT item_name, SUM(quantity) AS count FROM sold_items WHERE timestamp >= datetime('now', '-14 day') GROUP BY item_name ORDER BY count DESC, item_name ASC",
+          "refId": "A",
+          "timeColumns": []
+        }
+      ],
+      "title": "Sold Items In Last 2 Weeks",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "quickmart-sqlite"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "created_at"
+          }
+        ]
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "quickmart-sqlite"
+          },
+          "queryText": "SELECT ip_address, created_at, message FROM feedback_messages ORDER BY created_at DESC",
+          "queryType": "table",
+          "rawQueryText": "SELECT ip_address, created_at, message FROM feedback_messages ORDER BY created_at DESC",
+          "refId": "A",
+          "timeColumns": []
+        }
+      ],
+      "title": "Feedback Messages",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "quickmart",
+    "sqlite"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-14d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "QuickMart Overview",
+  "uid": "quickmart-overview",
+  "version": 1,
+  "weekStart": ""
+}

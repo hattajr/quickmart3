@@ -40,6 +40,7 @@ docker compose --env-file .env.prod up -d --build
 App URLs:
 
 - App: `http://<host>:8756`
+- Grafana: `http://<host>:3000` (configured credentials)
 - sqlite-web: `http://<host>:7756`
 
 ## Dev

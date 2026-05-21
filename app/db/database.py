@@ -15,7 +15,9 @@ def _apply_pragmas(conn: sqlite3.Connection) -> None:
     """Apply required SQLite runtime settings on every new connection."""
     conn.execute("PRAGMA journal_mode = WAL;")
     conn.execute("PRAGMA foreign_keys = ON;")
-    conn.execute("PRAGMA synchronous = NORMAL;")
+    # FULL favors durability over write throughput so committed sales survive
+    # abrupt host/container restarts more reliably.
+    conn.execute("PRAGMA synchronous = FULL;")
     conn.execute("PRAGMA busy_timeout = 5000;")
     conn.execute("PRAGMA temp_store = MEMORY;")
 

@@ -34,8 +34,10 @@ uv run migrations/import_from_supabase.py
 4. Start the stack:
 
 ```bash
-docker compose --env-file .env.prod up -d --build
+docker compose up -d --build
 ```
+
+`docker-compose.yml` loads `.env.prod` automatically for production services.
 
 App URLs:
 

@@ -57,14 +57,14 @@
             "type": "frser-sqlite-datasource",
             "uid": "quickmart-sqlite"
           },
-          "queryText": "SELECT product_name AS item_name, selected_at FROM search_selections WHERE product_name IS NOT NULL ORDER BY selected_at DESC LIMIT 1",
+          "queryText": "SELECT product_name AS item_name, strftime('%Y-%m-%d %H:%M:%S', datetime(selected_at, '+9 hours')) AS 'selected_at (KST)' FROM search_selections WHERE product_name IS NOT NULL AND selected_at >= datetime('now', '-14 day') ORDER BY selected_at DESC",
           "queryType": "table",
-          "rawQueryText": "SELECT product_name AS item_name, selected_at FROM search_selections WHERE product_name IS NOT NULL ORDER BY selected_at DESC LIMIT 1",
+          "rawQueryText": "SELECT product_name AS item_name, strftime('%Y-%m-%d %H:%M:%S', datetime(selected_at, '+9 hours')) AS 'selected_at (KST)' FROM search_selections WHERE product_name IS NOT NULL AND selected_at >= datetime('now', '-14 day') ORDER BY selected_at DESC",
           "refId": "A",
           "timeColumns": []
         }
       ],
-      "title": "Last Search Item",
+      "title": "Search Items In Last 14 Days",
       "type": "table"
     },
     {
@@ -108,9 +108,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "quickmart-sqlite"
           },
-          "queryText": "SELECT COALESCE(product_name, search_query) AS item_name, COUNT(*) AS count FROM search_selections GROUP BY COALESCE(product_name, search_query) ORDER BY count DESC, item_name ASC LIMIT 25",
+          "queryText": "SELECT COALESCE(product_name, search_query) AS item_name, COUNT(*) AS count FROM search_selections WHERE selected_at >= datetime('now', '-14 day') GROUP BY COALESCE(product_name, search_query) ORDER BY count DESC, item_name ASC LIMIT 25",
           "queryType": "table",
-          "rawQueryText": "SELECT COALESCE(product_name, search_query) AS item_name, COUNT(*) AS count FROM search_selections GROUP BY COALESCE(product_name, search_query) ORDER BY count DESC, item_name ASC LIMIT 25",
+          "rawQueryText": "SELECT COALESCE(product_name, search_query) AS item_name, COUNT(*) AS count FROM search_selections WHERE selected_at >= datetime('now', '-14 day') GROUP BY COALESCE(product_name, search_query) ORDER BY count DESC, item_name ASC LIMIT 25",
           "refId": "A",
           "timeColumns": []
         }
@@ -210,9 +210,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "quickmart-sqlite"
           },
-          "queryText": "SELECT ip_address, created_at, message FROM feedback_messages ORDER BY created_at DESC",
+          "queryText": "SELECT ip_address, strftime('%Y-%m-%d %H:%M:%S', datetime(created_at, '+9 hours')) AS 'created_at (KST)', message FROM feedback_messages WHERE created_at >= datetime('now', '-14 day') ORDER BY created_at DESC",
           "queryType": "table",
-          "rawQueryText": "SELECT ip_address, created_at, message FROM feedback_messages ORDER BY created_at DESC",
+          "rawQueryText": "SELECT ip_address, strftime('%Y-%m-%d %H:%M:%S', datetime(created_at, '+9 hours')) AS 'created_at (KST)', message FROM feedback_messages WHERE created_at >= datetime('now', '-14 day') ORDER BY created_at DESC",
           "refId": "A",
           "timeColumns": []
         }

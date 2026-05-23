@@ -20,6 +20,7 @@ services:
     stop_grace_period: 30s
     ports:
       - "127.0.0.1:8756:8756"
+      - "127.0.0.1:8756:8756"
     volumes:
       - ./data:/data
     environment:
@@ -52,6 +53,7 @@ services:
     stop_grace_period: 30s
     ports:
       - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
@@ -69,6 +71,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     ports:
+      - "127.0.0.1:7756:8080"
       - "127.0.0.1:7756:8080"
     volumes:
       - ./data:/data

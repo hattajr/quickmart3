@@ -18,11 +18,11 @@ from app.config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     CAROUSEL_IMAGE_BASE_URL,
+    PAYMENT_TEMPLATE_CONTEXT,
     S3_BUCKET_NAME,
     S3_CAROUSEL_IMAGES_FOLDER,
     S3_ENDPOINT_URL,
     S3_REGION,
-    PAYMENT_TEMPLATE_CONTEXT,
 )
 from app.db.database import get_db, insert_sold_session, insert_transactions_batch
 from app.utils import get_client_ip, parse_user_agent

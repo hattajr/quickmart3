@@ -12,8 +12,7 @@
     <div class="mb-4">
         <form hx-post="/admin/products/search" hx-target="#product-table-body" hx-swap="innerHTML"
             hx-trigger="keyup changed delay:300ms from:#search-query, change from:#sort-by, change from:#sort-order"
-            hx-include="[name='password'],[name='sort_by'],[name='sort_order']">
-            <input type="hidden" name="password" value="{{ password }}" />
+            hx-include="[name='sort_by'],[name='sort_order']">
             <input type="hidden" id="sort-by" name="sort_by" value="{{ sort_by }}" />
             <input type="hidden" id="sort-order" name="sort_order" value="{{ sort_order }}" />
             <input type="search" id="search-query" name="q" placeholder="Search products by name..."

@@ -2,6 +2,7 @@
 Admin routes for product management with stateless password authentication.
 """
 
+import secrets
 import sqlite3
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -9,19 +10,24 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-from app.config import ADMIN_PASSWORD
+from app.config import ADMIN_PASSWORD, PAYMENT_TEMPLATE_CONTEXT
 from app.db.database import get_db
 from app.utils.product_cache import product_cache
 
 router: APIRouter = APIRouter()
 templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
+templates.env.globals.update(PAYMENT_TEMPLATE_CONTEXT)
 
 
 def verify_password(password: str) -> bool:
-    """
-    Verify admin password.
-    """
-    return password == ADMIN_PASSWORD
+    """Verify the admin password using a constant-time comparison."""
+    return secrets.compare_digest(password, ADMIN_PASSWORD)
+
+
+def require_admin(request: Request) -> None:
+    """Require an authenticated admin session for a protected route."""
+    if request.session.get("admin_authenticated") is not True:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @router.get("/admin/products", response_class=HTMLResponse)
@@ -42,6 +48,8 @@ async def verify_admin_password(request: Request, password: str = Form(...)):
             request, "admin/_toast.html", {"message": "Invalid password!", "type": "error"}
         )
 
+    request.session["admin_authenticated"] = True
+
     for conn in get_db():
         cursor = conn.cursor()
         cursor.execute(
@@ -52,14 +60,13 @@ async def verify_admin_password(request: Request, password: str = Form(...)):
         return templates.TemplateResponse(
             request,
             "admin/_product_list.html",
-            {"products": products, "password": password, "sort_by": "id", "sort_order": "asc"},
+            {"products": products, "sort_by": "id", "sort_order": "asc"},
         )
 
 
 @router.post("/admin/products/search", response_class=HTMLResponse)
 async def search_products(
     request: Request,
-    password: str = Form(...),
     q: str = Form(""),
     sort_by: str = Form("id"),
     sort_order: str = Form("asc"),
@@ -67,8 +74,7 @@ async def search_products(
     """
     Search products by name with sorting.
     """
-    if not verify_password(password):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    require_admin(request)
 
     valid_columns = ["id", "name", "price", "stock"]
     if sort_by not in valid_columns:
@@ -89,14 +95,13 @@ async def search_products(
         products = cursor.fetchall()
 
         return templates.TemplateResponse(
-            request, "admin/_product_table.html", {"products": products, "password": password}
+            request, "admin/_product_table.html", {"products": products}
         )
 
 
 @router.post("/admin/products/add", response_class=HTMLResponse)
 async def add_product(
     request: Request,
-    password: str = Form(...),
     barcode: str = Form(None),
     name: str = Form(...),
     brand: str = Form(None),
@@ -112,8 +117,7 @@ async def add_product(
     """
     Add a new product.
     """
-    if not verify_password(password):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    require_admin(request)
 
     # Validate price and stock
     if price <= 0:
@@ -157,7 +161,6 @@ async def add_product(
                 "admin/_product_list.html",
                 {
                     "products": products,
-                    "password": password,
                     "sort_by": sort_by,
                     "sort_order": sort_order,
                     "toast_message": "Product added successfully!",
@@ -182,7 +185,6 @@ async def add_product(
 async def edit_product(
     request: Request,
     product_id: int,
-    password: str = Form(...),
     barcode: str = Form(None),
     name: str = Form(...),
     brand: str = Form(None),
@@ -198,8 +200,7 @@ async def edit_product(
     """
     Edit an existing product.
     """
-    if not verify_password(password):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    require_admin(request)
 
     # Validate price and stock
     if price <= 0:
@@ -251,7 +252,6 @@ async def edit_product(
                 "admin/_product_list.html",
                 {
                     "products": products,
-                    "password": password,
                     "sort_by": sort_by,
                     "sort_order": sort_order,
                     "toast_message": "Product updated successfully!",
@@ -273,12 +273,11 @@ async def edit_product(
 
 
 @router.delete("/admin/products/{product_id}", response_class=HTMLResponse)
-async def delete_product(request: Request, product_id: int, password: str):
+async def delete_product(request: Request, product_id: int):
     """
     Delete a product.
     """
-    if not verify_password(password):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    require_admin(request)
 
     for conn in get_db():
         cursor = conn.cursor()

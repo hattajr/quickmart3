@@ -38,9 +38,12 @@ docker-compose.yml
 *.md
 !README.md
 
-# Environment files (will be passed at runtime)
+# Environment files and local data are passed/mounted at runtime
 .env*
-!.env.prod
+data/
+.trash/
+*.sqlite3*
+*.db
 
 # OS files
 .DS_Store

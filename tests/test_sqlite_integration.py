@@ -130,7 +130,7 @@ def harness(tmp_path: Path) -> Iterator[AppHarness]:
 
     os.environ["SQLITE_DIR"] = str(sqlite_dir)
     os.environ["SQLITE_PATH"] = str(sqlite_path)
-    os.environ["SESSION_SECRET_KEY"] = "test-session-secret"
+    os.environ["SESSION_SECRET_KEY"] = "t" * 32
     os.environ["ADMIN_PASSWORD"] = "test-admin-password"
 
     modules = _reload_modules()
@@ -194,7 +194,6 @@ def test_admin_verify_search_and_duplicate_name_behaviour(harness: AppHarness) -
     search_response = harness.client.post(
         "/admin/products/search",
         data={
-            "password": "test-admin-password",
             "q": "mixed",
             "sort_by": "id",
             "sort_order": "asc",
@@ -206,7 +205,6 @@ def test_admin_verify_search_and_duplicate_name_behaviour(harness: AppHarness) -
     duplicate_response = harness.client.post(
         "/admin/products/add",
         data={
-            "password": "test-admin-password",
             "barcode": "0001",
             "name": "MiXeD Tea",
             "brand": "Brand",
@@ -227,6 +225,8 @@ def test_admin_verify_search_and_duplicate_name_behaviour(harness: AppHarness) -
 def test_admin_edit_delete_and_catalog_refresh(harness: AppHarness) -> None:
     """Admin edits should update timestamps and deletes should invalidate cached search data."""
     _seed_product(harness.sqlite_path, 1, "Old Milk", "dairy")
+    login_response = harness.client.post("/admin/verify", data={"password": "test-admin-password"})
+    assert login_response.status_code == 200
 
     harness.product_cache.refresh()
     assert harness.product_cache._invalidated is False
@@ -234,7 +234,6 @@ def test_admin_edit_delete_and_catalog_refresh(harness: AppHarness) -> None:
     edit_response = harness.client.post(
         "/admin/products/1/edit",
         data={
-            "password": "test-admin-password",
             "barcode": "0001",
             "name": "Updated Milk",
             "brand": "Brand",
@@ -258,10 +257,7 @@ def test_admin_edit_delete_and_catalog_refresh(harness: AppHarness) -> None:
     assert updated_row["name"] == "Updated Milk"
     assert updated_row["updated_at"] > updated_row["created_at"]
 
-    delete_response = harness.client.delete(
-        "/admin/products/1",
-        params={"password": "test-admin-password"},
-    )
+    delete_response = harness.client.delete("/admin/products/1")
     assert delete_response.status_code == 200
     assert delete_response.text == ""
     assert harness.product_cache._invalidated is True

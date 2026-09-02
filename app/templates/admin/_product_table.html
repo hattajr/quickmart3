@@ -18,7 +18,7 @@
                 @click="document.getElementById('edit-modal-{{ product.id }}').showModal()">
                 Edit
             </button>
-            <button hx-delete="/admin/products/{{ product.id }}?password={{ password }}"
+            <button hx-delete="/admin/products/{{ product.id }}"
                 hx-confirm="Are you sure you want to delete this product?" hx-target="#product-row-{{ product.id }}"
                 hx-swap="outerHTML swap:0.5s"
                 class="bg-red-500 text-white px-3 py-1 border-2 rounded border-gray-900 shadow-[2px_2px_0px] shadow-gray-900 hover:bg-red-600 active:scale-95 cursor-pointer text-sm">

@@ -10,13 +10,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-from app.config import PRODUCT_IMAGE_BASE_URL
+from app.config import PAYMENT_TEMPLATE_CONTEXT, PRODUCT_IMAGE_BASE_URL
 from app.db.database import get_db
 from app.utils import get_client_ip
 from app.utils.product_cache import product_cache
 
 router: APIRouter = APIRouter()
 templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
+templates.env.globals.update(PAYMENT_TEMPLATE_CONTEXT)
 
 
 def log_search_selection(

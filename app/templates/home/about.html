@@ -8,7 +8,7 @@
     </div>
 
     <div class="space-y-6">
-        <!-- Bank Information Section -->
+        {% if payment_bank_name and payment_account_name and payment_account_number %}
         <div class="bg-white border-2 border-gray-900 rounded-lg p-4 shadow-[4px_4px_0px] shadow-gray-900">
             <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="material-symbols-outlined">account_balance</span>
@@ -17,35 +17,45 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-medium text-gray-600">Bank</span>
-                    <span class="font-semibold text-gray-900">Hana Bank</span>
+                    <span class="font-semibold text-gray-900">{{ payment_bank_name }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-medium text-gray-600">Account Name</span>
-                    <span class="font-semibold text-gray-900">[removed]</span>
+                    <span class="font-semibold text-gray-900">{{ payment_account_name }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-medium text-gray-600">Account Number</span>
-                    <span class="font-mono font-bold text-gray-900 tracking-wide">[removed]</span>
+                    <span class="font-mono font-bold text-gray-900 tracking-wide">{{ payment_account_number }}</span>
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Contact Information Section -->
+        {% if payment_confirmation_phone or payment_feedback_phone %}
         <div class="bg-white border-2 border-gray-900 rounded-lg p-4 shadow-[4px_4px_0px] shadow-gray-900">
             <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="material-symbols-outlined">contact_phone</span>
                 Contact Us
             </h3>
             <div class="space-y-2">
+                {% if payment_confirmation_phone %}
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-medium text-gray-600">Confirmation</span>
-                    <a href="tel:[removed]" class="font-semibold text-blue-600 hover:underline">010 5608 2996</a>
+                    <a href="tel:{{ payment_confirmation_phone }}" class="font-semibold text-blue-600 hover:underline">{{ payment_confirmation_phone }}</a>
                 </div>
+                {% endif %}
+                {% if payment_feedback_phone %}
                 <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-gray-600">Feedback (Hatta)</span>
-                    <a href="tel:[removed]" class="font-semibold text-blue-600 hover:underline">010 3854 6810</a>
+                    <span class="text-sm font-medium text-gray-600">Feedback</span>
+                    <a href="tel:{{ payment_feedback_phone }}" class="font-semibold text-blue-600 hover:underline">{{ payment_feedback_phone }}</a>
                 </div>
+                {% endif %}
             </div>
         </div>
+        {% endif %}
+
+        {% if not (payment_bank_name and payment_account_name and payment_account_number) and not (payment_confirmation_phone or payment_feedback_phone) %}
+        <p class="text-gray-600">Payment and contact details are not configured.</p>
+        {% endif %}
     </div>
 </dialog>

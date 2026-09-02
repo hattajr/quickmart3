@@ -22,12 +22,14 @@ from app.config import (
     S3_CAROUSEL_IMAGES_FOLDER,
     S3_ENDPOINT_URL,
     S3_REGION,
+    PAYMENT_TEMPLATE_CONTEXT,
 )
 from app.db.database import get_db, insert_sold_session, insert_transactions_batch
 from app.utils import get_client_ip, parse_user_agent
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals.update(PAYMENT_TEMPLATE_CONTEXT)
 
 
 # Simple in-memory cache for carousel images
@@ -315,13 +317,11 @@ async def list_carousel_images(request: Request) -> Response:
 
 
 @router.post("/admin/clear-carousel-cache")
-async def clear_carousel_cache(request: Request, password: str = Form(...)) -> HTMLResponse:
+async def clear_carousel_cache(request: Request) -> HTMLResponse:
     """
     Manually clear the carousel image cache (admin only).
     """
-    from app.config import ADMIN_PASSWORD
-
-    if password != ADMIN_PASSWORD:
+    if request.session.get("admin_authenticated") is not True:
         return HTMLResponse(content="<span class='text-red-500'>Unauthorized</span>", status_code=401)
 
     carousel_cache.clear()

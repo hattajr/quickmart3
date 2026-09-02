@@ -22,6 +22,7 @@ from app.config import (
     APP_PORT,
     LOG_LEVEL,
     RELOAD,
+    SESSION_COOKIE_SECURE,
     SESSION_SECRET_KEY,
     SQLITE_DIR,
 )
@@ -89,7 +90,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="QuickMart POS", version="1.0.0")
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET_KEY,
+    https_only=SESSION_COOKIE_SECURE,
+    same_site="lax",
+    max_age=8 * 60 * 60,
+)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(main_routes.router, tags=["main"])

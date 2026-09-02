@@ -4,6 +4,23 @@ Application configuration and environment variables.
 
 import os
 
+
+def _required_env(name: str) -> str:
+    """Return a required environment variable without a public fallback."""
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise RuntimeError(f"{name} must be set before starting the application")
+    return value
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    """Read a boolean environment variable."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # Supabase S3 Storage Configuration
 AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
@@ -30,16 +47,33 @@ NO_IMAGE_URL: str = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Imag
 APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT: int = int(os.getenv("APP_PORT", "9982"))
 WORKERS: int = int(os.getenv("WORKERS", "1"))
-RELOAD: bool = bool(int(os.getenv("RELOAD", "1")))
+RELOAD: bool = _env_flag("RELOAD", False)
 
 SQLITE_DIR: str = os.getenv("SQLITE_DIR", "data")
 SQLITE_PATH: str = os.getenv("SQLITE_PATH", f"{SQLITE_DIR}/quickmart.sqlite3")
 
-LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")
-SESSION_SECRET_KEY: str = os.getenv("SESSION_SECRET_KEY", "[removed]")
+LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+SESSION_SECRET_KEY: str = _required_env("SESSION_SECRET_KEY")
+if len(SESSION_SECRET_KEY) < 32:
+    raise RuntimeError("SESSION_SECRET_KEY must contain at least 32 characters")
 
-# Admin authentication - CHANGE THIS IN PRODUCTION!
-ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "[removed]")
+ADMIN_PASSWORD: str = _required_env("ADMIN_PASSWORD")
+SESSION_COOKIE_SECURE: bool = _env_flag("SESSION_COOKIE_SECURE")
+
+# Payment and contact details are deployment configuration, not source code.
+PAYMENT_BANK_NAME: str = os.getenv("PAYMENT_BANK_NAME", "").strip()
+PAYMENT_ACCOUNT_NAME: str = os.getenv("PAYMENT_ACCOUNT_NAME", "").strip()
+PAYMENT_ACCOUNT_NUMBER: str = os.getenv("PAYMENT_ACCOUNT_NUMBER", "").strip()
+PAYMENT_CONFIRMATION_PHONE: str = os.getenv("PAYMENT_CONFIRMATION_PHONE", "").strip()
+PAYMENT_FEEDBACK_PHONE: str = os.getenv("PAYMENT_FEEDBACK_PHONE", "").strip()
+
+PAYMENT_TEMPLATE_CONTEXT = {
+    "payment_bank_name": PAYMENT_BANK_NAME,
+    "payment_account_name": PAYMENT_ACCOUNT_NAME,
+    "payment_account_number": PAYMENT_ACCOUNT_NUMBER,
+    "payment_confirmation_phone": PAYMENT_CONFIRMATION_PHONE,
+    "payment_feedback_phone": PAYMENT_FEEDBACK_PHONE,
+}
 
 # Fuzzy search configuration
 FUZZY_SEARCH_THRESHOLD: int = int(os.getenv("FUZZY_SEARCH_THRESHOLD", "60"))

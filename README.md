@@ -17,7 +17,7 @@ QuickMart is a FastAPI app backed by local SQLite. Product and carousel images s
 
 ## Deploy
 
-1. Fill `.env.prod` with the production S3 values, `SESSION_SECRET_KEY`, and `ADMIN_PASSWORD`.
+1. Copy `.env.example` to `.env.prod` and fill it with production-only values. Use long, unique values for `SESSION_SECRET_KEY`, `ADMIN_PASSWORD`, and `GRAFANA_ADMIN_PASSWORD`.
 2. Create the `sqlite-backup` bucket in Supabase Storage.
 3. Import the live data into `data/quickmart.sqlite3`:
 
@@ -34,16 +34,21 @@ uv run migrations/import_from_supabase.py
 4. Start the stack:
 
 ```bash
-docker compose up -d --build
+docker compose --env-file .env.prod up -d --build
 ```
 
-`docker-compose.yml` loads `.env.prod` automatically for production services.
+The compose file keeps application and monitoring ports on localhost. Put an HTTPS reverse proxy or Tailscale Serve in front of the app instead of publishing these ports directly. Set `SESSION_COOKIE_SECURE=1` when HTTPS is enabled.
 
-App URLs:
+App URLs from the host:
 
-- App: `http://<host>:8756`
-- Grafana: `http://<host>:3000` (configured credentials)
-- sqlite-web: `http://<host>:7756`
+- App: `http://127.0.0.1:8756`
+- Grafana: `http://127.0.0.1:3000`
+
+SQLite Web is an optional local-only tool. Start it only when needed with:
+
+```bash
+docker compose --env-file .env.prod --profile tools up -d sqlite-web
+```
 
 ## Dev
 
@@ -53,7 +58,7 @@ Run the app with the dev launcher:
 uv run --env-file .env.dev run_dev.py
 ```
 
-Useful `.env.dev` flags:
+Useful `.env.dev` flags (copy `.env.example` first):
 
 - `DEV_DB_RESET_ON_START=1` deletes the dev DB before startup
 - `DEV_DB_CLEANUP_ON_EXIT=1` deletes the dev DB on shutdown

@@ -1,5 +1,5 @@
 """
-Admin routes for product management with stateless password authentication.
+Admin routes for product management with signed-session authentication.
 """
 
 import secrets

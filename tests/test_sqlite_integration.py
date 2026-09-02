@@ -222,6 +222,25 @@ def test_admin_verify_search_and_duplicate_name_behaviour(harness: AppHarness) -
     assert "Product name already exists!" in duplicate_response.text
 
 
+def test_admin_mutations_require_session_and_do_not_echo_password(harness: AppHarness) -> None:
+    """Admin actions require the signed session created by login, not a form password."""
+    _seed_product(harness.sqlite_path, 1, "Protected Milk", "dairy")
+
+    unauthorized_response = harness.client.post(
+        "/admin/products/search",
+        data={"password": "test-admin-password", "q": "milk"},
+    )
+    assert unauthorized_response.status_code == 401
+
+    login_response = harness.client.post("/admin/verify", data={"password": "test-admin-password"})
+    assert login_response.status_code == 200
+    assert 'name="password"' not in login_response.text
+
+    authorized_response = harness.client.post("/admin/products/search", data={"q": "milk"})
+    assert authorized_response.status_code == 200
+    assert "Protected Milk" in authorized_response.text
+
+
 def test_admin_edit_delete_and_catalog_refresh(harness: AppHarness) -> None:
     """Admin edits should update timestamps and deletes should invalidate cached search data."""
     _seed_product(harness.sqlite_path, 1, "Old Milk", "dairy")

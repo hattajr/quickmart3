@@ -24,7 +24,7 @@
 <div class="relative max-w-4xl mx-auto mt-4 p-4">
   <div
     class="relative bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 z-100">
-    <div class="flex gap-2.5 mb-2.5">
+    <div class="flex items-start gap-2.5 mb-2.5">
       <div class="flex-1 relative" x-data="{ isSearching: false }">
         <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 bg-sky-50">
           <input id="search-input" type="search" name="q" placeholder="Search..." autocomplete="off" autocorrect="off"
@@ -50,7 +50,7 @@
 
       <button type="button"
         onclick="const d = document.getElementById('analyzer-modal'); if (d) { d.showModal(); window.dispatchEvent(new CustomEvent('analyzer-open')); }"
-        class="bg-blue-500 hover:bg-blue-600 text-white font-bold p-2 border-2 border-gray-900 rounded-md shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold h-10 w-10 border-2 border-gray-900 rounded-md shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0"
         aria-label="Open product image analyzer" title="Product Image Analyzer (BETA)">
         <span class="material-symbols-outlined text-xl">photo_camera</span>
       </button>

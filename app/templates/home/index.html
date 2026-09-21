@@ -24,7 +24,7 @@
 <div class="relative max-w-4xl mx-auto mt-4 p-4">
   <div
     class="relative bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 p-2 z-100">
-    <div class="flex gap-2.5 mb-2.5">
+    <div class="flex items-start gap-2.5 mb-2.5">
       <div class="flex-1 relative" x-data="{ isSearching: false }">
         <div class="border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 bg-sky-50">
           <input id="search-input" type="search" name="q" placeholder="Search..." autocomplete="off" autocorrect="off"
@@ -47,6 +47,14 @@
           <div id="search-results"></div>
         </div>
       </div>
+
+      <button type="button"
+        onclick="const d = document.getElementById('analyzer-modal'); if (d) { d.showModal(); window.dispatchEvent(new CustomEvent('analyzer-open')); }"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold h-10 w-10 border-2 border-gray-900 rounded-md shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0"
+        aria-label="Open product image analyzer" title="Product Image Analyzer (BETA)">
+        <span class="material-symbols-outlined text-xl">photo_camera</span>
+      </button>
+
     </div>
 
     <div class="flex flex-wrap gap-1 overflow-x-auto h-15" hx-get="/favorites" hx-trigger="load" hx-target="this"
@@ -169,5 +177,130 @@
       </button>
     </div>
   </dialog>
+
+  <!-- Image Analyzer Modal (BETA) -->
+  <dialog id="analyzer-modal" x-data="imageAnalyzer" @analyzer-open.window="onOpen()"
+    class="fixed inset-0 m-auto w-full max-w-lg p-5 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 backdrop:backdrop-blur-sm backdrop:bg-black/30">
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex items-center gap-2 font-bold text-xl text-gray-900">
+        <span class="material-symbols-outlined text-blue-600 text-2xl">photo_camera</span>
+        <span>Product Analyzer <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-md uppercase font-extrabold">BETA</span></span>
+      </div>
+      <button @click="onClose(); $el.closest('dialog').close()" class="hover:opacity-80 cursor-pointer">
+        <span class="material-symbols-outlined text-2xl text-gray-900">close</span>
+      </button>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="flex gap-2 mb-3">
+      <button type="button" @click="mode = 'camera'; startCamera()"
+        :class="mode === 'camera' ? 'bg-blue-500 text-white font-bold' : 'bg-white text-gray-800 font-medium'"
+        class="flex-1 py-1.5 px-3 border-2 border-gray-900 rounded-md shadow-[2px_2px_0px] shadow-gray-900 flex items-center justify-center gap-1 text-sm cursor-pointer">
+        <span class="material-symbols-outlined text-lg">videocam</span>
+        <span>Live Camera</span>
+      </button>
+      <button type="button" @click="mode = 'upload'; stopCamera()"
+        :class="mode === 'upload' ? 'bg-blue-500 text-white font-bold' : 'bg-white text-gray-800 font-medium'"
+        class="flex-1 py-1.5 px-3 border-2 border-gray-900 rounded-md shadow-[2px_2px_0px] shadow-gray-900 flex items-center justify-center gap-1 text-sm cursor-pointer">
+        <span class="material-symbols-outlined text-lg">upload_file</span>
+        <span>Upload / Paste</span>
+      </button>
+    </div>
+
+    <!-- Camera Mode -->
+    <div x-show="mode === 'camera'" class="flex flex-col gap-3">
+      <div class="relative bg-black rounded-lg overflow-hidden border-2 border-gray-900 aspect-video flex items-center justify-center">
+        <video x-ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
+        <button type="button" @click="switchCamera()" title="Switch camera"
+          class="absolute top-2 right-2 bg-white/80 hover:bg-white text-gray-900 p-1.5 rounded-full border border-gray-900 shadow">
+          <span class="material-symbols-outlined text-xl">cameraswitch</span>
+        </button>
+      </div>
+      <button type="button" @click="captureAndAnalyze()" :disabled="isAnalyzing"
+        class="w-full bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-bold py-2.5 px-4 border-2 border-gray-900 rounded-md shadow-[4px_4px_0px] shadow-gray-900 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all">
+        <span class="material-symbols-outlined">center_focus_strong</span>
+        <span x-text="isAnalyzing ? 'Analyzing...' : 'Snap & Identify'"></span>
+      </button>
+    </div>
+
+    <!-- Upload / Paste Mode -->
+    <div x-show="mode === 'upload'" class="flex flex-col gap-3">
+      <div @dragover.prevent="dragOver = true" @dragleave.prevent="dragOver = false"
+        @drop.prevent="dragOver = false; handleFile($event.dataTransfer.files[0])"
+        :class="dragOver ? 'border-blue-600 bg-blue-50' : 'border-gray-900 bg-sky-50'"
+        class="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-sky-100 transition-colors"
+        @click="$refs.fileInput.click()">
+        <span class="material-symbols-outlined text-4xl text-gray-600">cloud_upload</span>
+        <p class="text-sm font-semibold text-gray-800">Click or Drag & Drop Product Image</p>
+        <p class="text-xs text-gray-500">Supports Ctrl + V to paste image directly</p>
+        <input x-ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFile($event.target.files[0])" />
+      </div>
+    </div>
+
+    <!-- Loading / Status Spinner -->
+    <div x-show="isAnalyzing" class="mt-4 p-4 bg-white border-2 border-gray-900 rounded-lg flex items-center justify-center gap-3">
+      <span class="material-symbols-outlined animate-spin text-blue-600 text-2xl">progress_activity</span>
+      <span class="text-sm font-semibold text-gray-800" x-text="statusText"></span>
+    </div>
+
+    <!-- Results Display -->
+    <div x-show="result && !isAnalyzing" class="mt-4 flex flex-col gap-3">
+      <!-- High Confidence Match -->
+      <template x-if="result && result.status === 'matched'">
+        <div class="bg-green-100 border-2 border-gray-900 rounded-lg p-4 flex flex-col gap-3">
+          <div class="flex items-center gap-2 text-green-800 font-bold">
+            <span class="material-symbols-outlined text-2xl">check_circle</span>
+            <span>Product Match Found</span>
+          </div>
+          <div class="flex justify-between items-center bg-white border border-gray-900 rounded-md p-3">
+            <div>
+              <h4 class="font-bold text-gray-900" x-text="result.name"></h4>
+              <p class="text-sm font-bold text-green-700" x-text="'Rp ' + Number(result.price).toLocaleString('id-ID')"></p>
+            </div>
+            <button type="button" @click="addToCart(result)"
+              class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 border-2 border-gray-900 rounded-md shadow-[2px_2px_0px] shadow-gray-900 cursor-pointer active:scale-95">
+              + Add to Cart
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- Multiple Possible Options -->
+      <template x-if="result && result.status === 'possible_options'">
+        <div class="bg-yellow-100 border-2 border-gray-900 rounded-lg p-4 flex flex-col gap-3">
+          <div class="flex items-center gap-2 text-yellow-800 font-bold">
+            <span class="material-symbols-outlined text-2xl">help</span>
+            <span x-text="result.message || 'Possible Matches:'"></span>
+          </div>
+          <div class="flex flex-col gap-2 max-h-56 overflow-y-auto">
+            <template x-for="option in result.options" :key="option.product_id">
+              <div class="flex justify-between items-center bg-white border border-gray-900 rounded-md p-2.5 hover:bg-yellow-50">
+                <div class="truncate pr-2">
+                  <span class="font-semibold text-gray-900 block truncate" x-text="option.name"></span>
+                  <span class="text-xs font-bold text-gray-700" x-text="'Rp ' + Number(option.price).toLocaleString('id-ID')"></span>
+                </div>
+                <button type="button" @click="addToCart(option)"
+                  class="bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-bold py-1.5 px-3 border border-gray-900 rounded shadow text-xs cursor-pointer active:scale-95 shrink-0">
+                  Select
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- Not Found / Error -->
+      <template x-if="result && (result.status === 'not_found' || result.status === 'error')">
+        <div class="bg-red-100 border-2 border-gray-900 rounded-lg p-4 flex items-start gap-3">
+          <span class="material-symbols-outlined text-red-600 text-2xl">error</span>
+          <div>
+            <h4 class="font-bold text-red-900">Product Not Recognized</h4>
+            <p class="text-xs text-red-700 mt-1">Unable to match image with high confidence. Try snapping another angle or search manually.</p>
+          </div>
+        </div>
+      </template>
+    </div>
+  </dialog>
+
 </div>
 {% endblock %}

@@ -5,7 +5,7 @@ Product search and catalog route handlers.
 import html
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from loguru import logger
@@ -236,3 +236,28 @@ async def show_favorite_items(request: Request):
         items = cursor.fetchall()
 
     return templates.TemplateResponse(request, "home/_favorites.html", {"items": items})
+
+
+@router.post("/api/identify")
+async def identify_product(file: UploadFile = File(...)) -> JSONResponse:
+    """
+    POST /api/identify
+    Upload product image to identify product using Vision LLM and internal database search.
+    """
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid image file format.")
+
+    try:
+        image_bytes = await file.read()
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="Empty image uploaded.")
+
+        from app.services.image_analyzer.service import analyze_product_image
+
+        result = await analyze_product_image(image_bytes, mime_type=file.content_type)
+        return JSONResponse(content=result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error identifying product image: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})

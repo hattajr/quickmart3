@@ -77,3 +77,10 @@ PAYMENT_TEMPLATE_CONTEXT = {
 
 # Fuzzy search configuration
 FUZZY_SEARCH_THRESHOLD: int = int(os.getenv("FUZZY_SEARCH_THRESHOLD", "60"))
+
+# Image Analyzer (Vision LLM) configuration
+LLM_ENDPOINT: str = os.getenv("LLM_ENDPOINT", "http://localhost:1234/v1/chat/completions")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "google/gemma-4-e4b")
+IMAGE_ANALYZER_ENABLED: bool = _env_flag("IMAGE_ANALYZER_ENABLED", True)
+DEBUG: bool = _env_flag("DEBUG", False)
+

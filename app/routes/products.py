@@ -256,7 +256,8 @@ async def identify_product(file: UploadFile = File(...)) -> JSONResponse:
 
         result = await analyze_product_image(image_bytes, mime_type=file.content_type)
         return JSONResponse(content=result)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error identifying product image: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
-

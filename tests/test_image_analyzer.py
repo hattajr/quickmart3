@@ -1,6 +1,7 @@
 """Unit and integration tests for product image analyzer service."""
 
 import io
+import os
 import sys
 from pathlib import Path
 
@@ -8,15 +9,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-import os
 os.environ.setdefault("SESSION_SECRET_KEY", "x" * 32)
 os.environ.setdefault("ADMIN_PASSWORD", "testpass")
 
 import pytest
+from fastapi.testclient import TestClient
 from PIL import Image
 
-
-
+from app.main import app
 from app.services.image_analyzer.matching import (
     fuzzy_token_match,
     normalize_text,
@@ -89,3 +89,14 @@ async def test_api_identify_disabled_or_endpoint(monkeypatch):
 
     res = await service.analyze_product_image(test_bytes, "image/jpeg")
     assert "status" in res
+
+
+def test_identify_rejects_empty_image_as_client_error():
+    """An empty image upload remains a 400 response rather than becoming a 500."""
+    response = TestClient(app).post(
+        "/api/identify",
+        files={"file": ("empty.jpg", b"", "image/jpeg")},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Empty image uploaded."}

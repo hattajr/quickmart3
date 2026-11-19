@@ -64,3 +64,22 @@ Useful `.env.dev` flags (copy `.env.example` first):
 - `DEV_DB_CLEANUP_ON_EXIT=1` deletes the dev DB on shutdown
 
 Set either flag to `0` if you want to keep the local dev database between runs.
+
+## Supplier invoices
+
+Each week, photograph the supplier's invoice (거래명세표 or web order sheet) and load it on the host:
+
+```bash
+uv run python -m app.services.supplier_invoices --db data/quickmart.sqlite3 photo1.jpg [photo2.jpg ...]
+```
+
+It runs headless Claude Code (`claude -p`, logged in on the host) to turn each photo upright and read it, then stores one invoice per supplier and date in the `supplier_*` tables, which are separate from the shop's `products`:
+
+- Pages of one invoice can be separate photos; they are joined by the printed page marker (e.g. `16-1/2`).
+- An invoice is stored only if every row's qty × price equals its amount and the rows add up to the printed totals.
+- A date already stored is skipped. If two different copies of one date are given, the newest photo wins.
+- Each page keeps its upright photo (`supplier_invoice_pages.image_jpeg`) and the model's raw answer for double-checking.
+- `supplier_products.name_latin` is the product's identity. Rename it there to fix a name on every invoice.
+- `supplier_price_history` shows each product's unit price over time, without crossed-out or free rows.
+
+Answers are cached in `data/supplier_invoice_cache/`, so a rerun costs nothing.

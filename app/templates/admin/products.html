@@ -1,14 +1,16 @@
 {% extends "admin/layout.html" %}
 {% block title %}Products{% endblock %}
 {% block content %}
-<div class="searchrow">
-    <label class="search" for="product-search"><span class="icon">search</span>
-        <input type="search" id="product-search" name="q" placeholder="Search {{ products|length }} products"
-            aria-label="Search products" autocomplete="off" hx-get="/admin/products/rows"
-            hx-trigger="input changed delay:250ms, search" hx-target="#product-rows" hx-swap="outerHTML">
-    </label>
-    <button class="addbtn" hx-get="/admin/products/new" hx-target="#sheet"><span class="icon">add</span>Add</button>
+<div class="panel">
+    <div class="searchrow">
+        <label class="search" for="product-search"><span class="icon">search</span>
+            <input type="search" id="product-search" name="q" placeholder="Search {{ products|length }} products"
+                aria-label="Search products" autocomplete="off" hx-get="/admin/products/rows"
+                hx-trigger="input changed delay:250ms, search" hx-target="#product-rows" hx-swap="outerHTML">
+        </label>
+        <button class="addbtn" hx-get="/admin/products/new" hx-target="#sheet"><span class="icon">add</span>Add</button>
+    </div>
+    <div class="sec-l">Sorted by name<span class="sec-r">Tap to edit</span></div>
+    {% include "admin/_product_rows.html" %}
 </div>
-<div class="sec-l">Sorted by name<span class="sec-r">Tap to edit</span></div>
-{% include "admin/_product_rows.html" %}
 {% endblock %}

@@ -164,7 +164,10 @@ def test_init_db_enables_pragmas_and_rejects_orphaned_sold_items(harness: AppHar
 
     for conn in harness.database.get_db():
         assert conn.execute("SELECT 1").fetchone()[0] == 1
-        assert conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'").fetchone()[0] == "products"
+        assert (
+            conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'").fetchone()[0]
+            == "products"
+        )
         assert conn.execute("PRAGMA journal_mode;").fetchone()[0].lower() == "wal"
         assert conn.execute("PRAGMA foreign_keys;").fetchone()[0] == 1
         with pytest.raises(sqlite3.IntegrityError):
@@ -448,7 +451,22 @@ def _store_invoice(sqlite_path: Path) -> int:
 
     items = [Item("하이드로코코", "Hydro Coco 330ml", "24 EA", "1", 1, 37008, 37008, "", False)]
     page = Page(
-        "a.jpg", "sha-a", 0, _jpeg_bytes(), 40, 60, "{}", "하나피아", "거래명세표", "1", "2026-11-19", 1, 1, 1, 37008, items
+        "a.jpg",
+        "sha-a",
+        0,
+        _jpeg_bytes(),
+        40,
+        60,
+        "{}",
+        "하나피아",
+        "거래명세표",
+        "1",
+        "2026-11-19",
+        1,
+        1,
+        1,
+        37008,
+        items,
     )
     invoices, failures = build_invoices([page])
     assert failures == []
@@ -531,3 +549,30 @@ def test_price_check_update_undo_and_match(harness: AppHarness) -> None:
     photo = harness.client.get(f"/admin/invoices/{invoice_id}/pages/1")
     assert photo.headers["content-type"] == "image/jpeg"
     assert harness.client.get(f"/admin/invoices/{invoice_id}/pages/9").status_code == 404
+
+
+def test_invoices_tab_says_when_the_reader_is_stopped_or_cannot_sign_in(harness: AppHarness) -> None:
+    """The heartbeat file beside the database decides the banner and the waiting card's note."""
+    import time
+
+    from app.services.supplier_invoices import reader_status, uploads
+
+    assert harness.client.get("/admin/invoices/reader").status_code == 401
+    _login(harness)
+    with sqlite3.connect(harness.sqlite_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON;")
+        upload_id = uploads.create_upload(conn, [_jpeg_bytes()])
+    page = harness.client.get("/admin/invoices")
+    assert "The invoice reader isn't running" in page.text
+    assert "this waits until it starts" in harness.client.get(f"/admin/invoices/uploads/{upload_id}").text
+
+    path = reader_status.status_path(harness.sqlite_path)
+    reader_status.write_status(path, "", "", time.time())
+    assert "isn't running" not in harness.client.get("/admin/invoices/reader").text
+    assert "You can close the app" in harness.client.get(f"/admin/invoices/uploads/{upload_id}").text
+
+    reader_status.write_status(path, "login", "Not logged in · Please run /login", time.time())
+    banner = harness.client.get("/admin/invoices/reader").text
+    assert "sign in to Claude" in banner and "Not logged in" in banner and "claude setup-token" in banner
+    card = harness.client.get(f"/admin/invoices/uploads/{upload_id}").text
+    assert "so this waits" in card and "Delete" in card

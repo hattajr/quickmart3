@@ -1,4 +1,4 @@
-"""Queue of invoice photos sent from the admin page, read later by the host worker."""
+"""Queue of invoice photos sent from the admin page, read later by the invoice worker."""
 
 import hashlib
 import sqlite3
@@ -161,6 +161,18 @@ def fail_upload(conn: sqlite3.Connection, upload_id: int, message: str) -> None:
             " WHERE id = ?",
             (_clip(message) or "The invoice could not be read", upload_id),
         )
+
+
+def requeue_upload(conn: sqlite3.Connection, upload_id: int, reason: str) -> None:
+    """Put an upload back in line with the reason it waits, without counting it as an attempt."""
+    with conn:
+        cursor = conn.execute(
+            "UPDATE supplier_invoice_uploads SET status = 'waiting', attempts = max(attempts - 1, 0),"
+            " message = ?, started_at = NULL WHERE id = ? AND status = 'reading'",
+            (_clip(reason), upload_id),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(f"upload {upload_id} is not being read, so it cannot be requeued")
 
 
 def retry_upload(conn: sqlite3.Connection, upload_id: int) -> bool:

@@ -40,7 +40,11 @@ document.addEventListener("htmx:responseError", (event) => {
     window.location.reload();
     return;
   }
-  showToast("Something went wrong. Try again.", true);
+  // Short plain-text answers (e.g. "That invoice does not exist.") are meant for the reader.
+  const xhr = event.detail.xhr;
+  const text = (xhr.responseText || "").trim();
+  const plain = text && text.length <= 200 && !text.startsWith("<") && !text.startsWith("{");
+  showToast(plain ? text : `The server hit an error (${xhr.status}). Try again.`, true);
 });
 
 document.addEventListener("htmx:sendError", () => showToast("No connection. Check the internet and try again.", true));

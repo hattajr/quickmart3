@@ -1,16 +1,21 @@
 """Admin Invoices tab: send invoice photos, follow their reading, and act on price suggestions."""
 
+import asyncio
 import io
 import logging
 import sqlite3
+import time
+from pathlib import Path
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from PIL import Image, UnidentifiedImageError
 
+from app.config import SQLITE_PATH
 from app.routes.admin_common import db_call, is_admin, parse_won, require_admin, templates
 from app.services.supplier_invoices import pricing, uploads
 from app.services.supplier_invoices.pricing import PriceLine, ReviewError
+from app.services.supplier_invoices.reader_status import ReaderStatus, read_status, status_path
 from app.utils.product_cache import product_cache
 
 logger = logging.getLogger(__name__)
@@ -19,8 +24,11 @@ router: APIRouter = APIRouter()
 
 RECENT_INVOICES_MAX = 20
 SEARCH_QUERY_CHARS_MAX = 100
-# After this long in the queue, the status card asks whether the invoice reader is running.
-WAITING_HINT_MINUTES = 3
+
+
+async def _reader() -> ReaderStatus:
+    """Return whether the invoice worker runs and what stops it, from its heartbeat file."""
+    return await asyncio.to_thread(read_status, status_path(Path(SQLITE_PATH)), time.time())
 
 
 def _toast(message: str, kind: str = "ok") -> str:
@@ -45,8 +53,9 @@ def _card_with_count(conn: sqlite3.Connection, item_id: int) -> tuple[PriceLine 
     return line, review.to_fix_count
 
 
-def _upload_card(upload: uploads.Upload) -> str:
-    return templates.get_template("admin/_upload_card.html").render(u=upload, hint_minutes=WAITING_HINT_MINUTES)
+async def _upload_card(upload: uploads.Upload) -> str:
+    reader = await _reader()
+    return templates.get_template("admin/_upload_card.html").render(u=upload, reader=reader)
 
 
 @router.get("/admin/invoices", response_class=HTMLResponse)
@@ -66,7 +75,7 @@ async def invoices_page(request: Request) -> Response:
             "tab": "invoices",
             "uploads": open_uploads,
             "recent": recent,
-            "hint_minutes": WAITING_HINT_MINUTES,
+            "reader": await _reader(),
             "photos_max": uploads.PHOTOS_PER_UPLOAD_MAX,
         },
     )
@@ -108,7 +117,7 @@ async def send_photos(request: Request, photos: list[UploadFile] = File(...)) ->
 
     upload = await db_call(queue)
     logger.info("queued invoice upload %d with %d photo(s)", upload.id, len(images))
-    return HTMLResponse(_upload_card(upload))
+    return HTMLResponse(await _upload_card(upload))
 
 
 @router.get("/admin/invoices/uploads/{upload_id}", response_class=HTMLResponse)
@@ -121,7 +130,7 @@ async def upload_status(request: Request, upload_id: int) -> Response:
     if upload.status == "done" and upload.invoice_id is not None:
         target = f"/admin/invoices/{upload.invoice_id}?upload={upload.id}"
         return HTMLResponse("", headers={"HX-Redirect": target})
-    return HTMLResponse(_upload_card(upload))
+    return HTMLResponse(await _upload_card(upload))
 
 
 @router.post("/admin/invoices/uploads/{upload_id}/retry", response_class=HTMLResponse)
@@ -137,9 +146,17 @@ async def retry_upload(request: Request, upload_id: int) -> Response:
         return HTMLResponse(_toast("That upload no longer exists.", "error"))
     if not retried:
         return HTMLResponse(
-            _upload_card(upload) + _toast("Send the photos again; this upload can't be retried.", "error")
+            await _upload_card(upload) + _toast("Send the photos again; this upload can't be retried.", "error")
         )
-    return HTMLResponse(_upload_card(upload))
+    return HTMLResponse(await _upload_card(upload))
+
+
+@router.get("/admin/invoices/reader", response_class=HTMLResponse)
+async def reader_banner(request: Request) -> Response:
+    """Return the banner that says when the invoice reader is stopped or can't use Claude."""
+    require_admin(request)
+    reader = await _reader()
+    return HTMLResponse(templates.get_template("admin/_reader_status.html").render(reader=reader))
 
 
 @router.post("/admin/invoices/uploads/{upload_id}/delete", response_class=HTMLResponse)

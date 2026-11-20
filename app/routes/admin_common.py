@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from app.config import ADMIN_PASSWORD
 from app.db.database import get_db
 from app.services.supplier_invoices.pricing import MARKUP_FLAG_PCT, MARKUP_SUGGEST_PCT
+from app.services.supplier_invoices.reader_status import PROBLEM_RETRY_SECONDS, PROBLEM_TITLES
 
 templates: Jinja2Templates = Jinja2Templates(directory="app/templates")
 
@@ -35,6 +36,8 @@ templates.env.filters["won"] = won
 templates.env.filters["nice_date"] = nice_date
 templates.env.globals["markup_flag_pct"] = MARKUP_FLAG_PCT
 templates.env.globals["markup_suggest_pct"] = MARKUP_SUGGEST_PCT
+templates.env.globals["reader_problem_titles"] = PROBLEM_TITLES
+templates.env.globals["reader_retry_minutes"] = {kind: s // 60 for kind, s in PROBLEM_RETRY_SECONDS.items()}
 
 
 def verify_password(password: str) -> bool:

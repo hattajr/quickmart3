@@ -15,7 +15,9 @@ services:
 
   app:
     <<: *prod-env
-    build: .
+    build:
+      context: .
+      target: app
     restart: unless-stopped
     stop_grace_period: 30s
     ports:
@@ -26,6 +28,23 @@ services:
       SQLITE_PATH: /data/quickmart.sqlite3
       SQLITE_DIR: /data
       RELOAD: "0"
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+
+  # Reads invoice photos sent from the admin page with headless Claude Code.
+  # Needs CLAUDE_CODE_OAUTH_TOKEN in .env.prod; problems show on the admin Invoices tab.
+  invoice-worker:
+    <<: *prod-env
+    build:
+      context: .
+      target: invoice-worker
+    restart: unless-stopped
+    init: true
+    # It finishes the photo it is reading before it stops; a cut-off upload is requeued on start.
+    stop_grace_period: 5m
+    volumes:
+      - ./data:/data
     depends_on:
       restore:
         condition: service_completed_successfully

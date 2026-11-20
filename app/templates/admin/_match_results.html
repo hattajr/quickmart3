@@ -1,0 +1,9 @@
+{% for p, score in candidates %}
+<button class="alt" type="button" hx-post="/admin/invoices/items/{{ line.item_id }}/match" hx-vals='{"product_id": "{{ p.id }}"}'
+    hx-target="#line-{{ line.item_id }}" hx-swap="outerHTML" {% if line.shop and line.shop.id == p.id %}aria-pressed="true"{% endif %}>
+    <span class="alt-main"><span class="prow-name">{{ p.label }}</span><span class="prow-sub">#{{ p.id }}{% if p.unit %} · {{ p.unit }}{% endif %} · name {{ score|round|int }}% alike</span></span>
+    <span class="price">₩{{ p.price|won }}</span>
+</button>
+{% else %}
+<p class="hint">No shop product has a name like that.</p>
+{% endfor %}

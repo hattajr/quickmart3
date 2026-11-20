@@ -13,6 +13,7 @@ from pathlib import Path
 from app.services.supplier_invoices.ledger import (
     apply_schema,
     build_invoices,
+    connect,
     is_invoice_stored,
     is_photo_stored,
     load_known_products,
@@ -23,18 +24,6 @@ from app.services.supplier_invoices.parse import PAGE_MODEL_DEFAULT, Page, parse
 logger = logging.getLogger(__name__)
 
 PHOTOS_PER_RUN_MAX = 100
-
-
-def connect(db_path: Path) -> sqlite3.Connection:
-    """Open the database with the same settings the app uses."""
-    if not db_path.parent.is_dir():
-        raise FileNotFoundError(f"database folder {db_path.parent} does not exist")
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA journal_mode = WAL;")
-    conn.execute("PRAGMA foreign_keys = ON;")
-    conn.execute("PRAGMA synchronous = FULL;")
-    conn.execute("PRAGMA busy_timeout = 5000;")
-    return conn
 
 
 def photos_to_parse(conn: sqlite3.Connection, images: list[Path]) -> list[tuple[Path, str]]:
@@ -77,7 +66,7 @@ def run(args: argparse.Namespace) -> int:
                 known[(page.supplier, item.name_latin)] = item.product_name
 
         invoices, date_failures = build_invoices(pages)
-        failures += date_failures
+        failures += len(date_failures)
         for invoice in invoices:
             if is_invoice_stored(conn, invoice.supplier, invoice.invoice_date):
                 logger.info(

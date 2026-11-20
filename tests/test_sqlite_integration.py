@@ -26,7 +26,9 @@ MODULE_NAMES = [
     "app.db.database",
     "app.utils",
     "app.utils.product_cache",
+    "app.routes.admin_common",
     "app.routes.admin",
+    "app.routes.admin_invoices",
     "app.routes.products",
     "app.routes.main",
 ]
@@ -59,6 +61,7 @@ def _build_test_app(secret_key: str, modules: dict[str, Any]) -> FastAPI:
     app.include_router(modules["app.routes.main"].router)
     app.include_router(modules["app.routes.products"].router)
     app.include_router(modules["app.routes.admin"].router)
+    app.include_router(modules["app.routes.admin_invoices"].router)
     return app
 
 
@@ -191,16 +194,12 @@ def test_admin_verify_search_and_duplicate_name_behaviour(harness: AppHarness) -
     assert verify_response.status_code == 200
     assert "MiXeD Tea" in verify_response.text
 
-    search_response = harness.client.post(
-        "/admin/products/search",
-        data={
-            "q": "mixed",
-            "sort_by": "id",
-            "sort_order": "asc",
-        },
-    )
+    search_response = harness.client.get("/admin/products/rows", params={"q": "mixed"})
     assert search_response.status_code == 200
     assert "MiXeD Tea" in search_response.text
+
+    no_match = harness.client.get("/admin/products/rows", params={"q": "coffee"})
+    assert "MiXeD Tea" not in no_match.text
 
     duplicate_response = harness.client.post(
         "/admin/products/add",
@@ -214,29 +213,30 @@ def test_admin_verify_search_and_duplicate_name_behaviour(harness: AppHarness) -
             "description": "duplicate",
             "keyword": "tea",
             "image_url": "",
-            "sort_by": "id",
-            "sort_order": "asc",
         },
     )
     assert duplicate_response.status_code == 200
-    assert "Product name already exists!" in duplicate_response.text
+    assert "A product with this name already exists." in duplicate_response.text
+    assert _query_value(harness.sqlite_path, "SELECT COUNT(*) FROM products") == 1
 
 
 def test_admin_mutations_require_session_and_do_not_echo_password(harness: AppHarness) -> None:
     """Admin actions require the signed session created by login, not a form password."""
     _seed_product(harness.sqlite_path, 1, "Protected Milk", "dairy")
 
-    unauthorized_response = harness.client.post(
-        "/admin/products/search",
-        data={"password": "test-admin-password", "q": "milk"},
+    unauthorized_response = harness.client.get(
+        "/admin/products/rows", params={"password": "test-admin-password", "q": "milk"}
     )
     assert unauthorized_response.status_code == 401
+
+    wrong_password = harness.client.post("/admin/verify", data={"password": "nope"})
+    assert "That password is not right." in wrong_password.text
 
     login_response = harness.client.post("/admin/verify", data={"password": "test-admin-password"})
     assert login_response.status_code == 200
     assert 'name="password"' not in login_response.text
 
-    authorized_response = harness.client.post("/admin/products/search", data={"q": "milk"})
+    authorized_response = harness.client.get("/admin/products/rows", params={"q": "milk"})
     assert authorized_response.status_code == 200
     assert "Protected Milk" in authorized_response.text
 
@@ -262,11 +262,11 @@ def test_admin_edit_delete_and_catalog_refresh(harness: AppHarness) -> None:
             "description": "updated",
             "keyword": "fresh milk",
             "image_url": "",
-            "sort_by": "id",
-            "sort_order": "asc",
         },
     )
     assert edit_response.status_code == 200
+    assert 'id="product-1"' in edit_response.text
+    assert "Saved Updated Milk" in edit_response.text
 
     updated_row = _query_one(
         harness.sqlite_path,
@@ -278,7 +278,8 @@ def test_admin_edit_delete_and_catalog_refresh(harness: AppHarness) -> None:
 
     delete_response = harness.client.delete("/admin/products/1")
     assert delete_response.status_code == 200
-    assert delete_response.text == ""
+    assert 'hx-swap-oob="delete"' in delete_response.text
+    assert _query_value(harness.sqlite_path, "SELECT COUNT(*) FROM products") == 0
     assert harness.product_cache._invalidated is True
 
     catalog_response = harness.client.get("/catalog")
@@ -427,3 +428,106 @@ def test_template_routes_do_not_emit_deprecation_warnings(harness: AppHarness) -
 
     deprecations = [warning for warning in caught if issubclass(warning.category, DeprecationWarning)]
     assert not deprecations
+
+
+def _jpeg_bytes() -> bytes:
+    """Return a small real JPEG."""
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (40, 60), "white").save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def _store_invoice(sqlite_path: Path) -> int:
+    """Store a one-line 하나피아 invoice for Hydro Coco and return its id."""
+    from app.services.supplier_invoices.ledger import build_invoices, store_invoice
+    from app.services.supplier_invoices.parse import Item, Page
+
+    items = [Item("하이드로코코", "Hydro Coco 330ml", "24 EA", "1", 1, 37008, 37008, "", False)]
+    page = Page(
+        "a.jpg", "sha-a", 0, _jpeg_bytes(), 40, 60, "{}", "하나피아", "거래명세표", "1", "2026-11-19", 1, 1, 1, 37008, items
+    )
+    invoices, failures = build_invoices([page])
+    assert failures == []
+    with sqlite3.connect(sqlite_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON;")
+        return store_invoice(conn, invoices[0], "opus")
+
+
+def _login(harness: AppHarness) -> None:
+    response = harness.client.post("/admin/verify", data={"password": "test-admin-password"})
+    assert response.status_code == 200
+
+
+def test_invoice_photos_are_queued_only_for_the_admin(harness: AppHarness) -> None:
+    """Sending photos needs a login, accepts real images, and rejects other files."""
+    photo = ("photos", ("page-1.jpg", _jpeg_bytes(), "image/jpeg"))
+    assert harness.client.post("/admin/invoices/uploads", files=[photo]).status_code == 401
+
+    _login(harness)
+    response = harness.client.post("/admin/invoices/uploads", files=[photo, photo])
+    assert response.status_code == 200
+    assert "Waiting to be read" in response.text
+    assert _query_value(harness.sqlite_path, "SELECT COUNT(*) FROM supplier_invoice_upload_photos") == 2
+
+    bad = harness.client.post("/admin/invoices/uploads", files=[("photos", ("x.jpg", b"not an image", "image/jpeg"))])
+    assert bad.status_code == 400
+    assert "not a photo" in bad.text
+
+    page = harness.client.get("/admin/invoices")
+    assert page.status_code == 200
+    assert "Waiting to be read" in page.text
+
+
+def test_upload_status_sends_the_page_to_the_invoice_when_read(harness: AppHarness) -> None:
+    """A read upload's status call points the page at its invoice."""
+    from app.services.supplier_invoices import uploads
+
+    invoice_id = _store_invoice(harness.sqlite_path)
+    with sqlite3.connect(harness.sqlite_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON;")
+        upload_id = uploads.create_upload(conn, [_jpeg_bytes()])
+        uploads.claim_next(conn)
+        uploads.finish_upload(conn, upload_id, invoice_id, "")
+
+    _login(harness)
+    response = harness.client.get(f"/admin/invoices/uploads/{upload_id}")
+    assert response.headers["HX-Redirect"] == f"/admin/invoices/{invoice_id}?upload={upload_id}"
+
+
+def test_price_check_update_undo_and_match(harness: AppHarness) -> None:
+    """The invoice page flags a low price; Update sets it, Undo restores it, and matches are saved."""
+    _seed_product(harness.sqlite_path, 1, "Hydro coco original", "coconut")
+    invoice_id = _store_invoice(harness.sqlite_path)
+    assert harness.client.get(f"/admin/invoices/{invoice_id}/pages/1").status_code == 401
+
+    _login(harness)
+    page = harness.client.get(f"/admin/invoices/{invoice_id}")
+    assert page.status_code == 200
+    assert "Hydro Coco 330ml" in page.text
+    assert "1 to fix" in page.text
+    assert "1,800" in page.text
+
+    item_id = _query_value(harness.sqlite_path, "SELECT id FROM supplier_invoice_items")
+    updated = harness.client.post(f"/admin/invoices/items/{item_id}/update", data={"price": "1,800", "product_id": "1"})
+    assert "Updated to ₩1,800" in updated.text
+    assert "All done" in updated.text
+    row = _query_one(harness.sqlite_path, "SELECT price, purchase_price FROM products WHERE id = 1")
+    assert (row["price"], row["purchase_price"]) == (1800, 1542)
+
+    undone = harness.client.post(f"/admin/invoices/items/{item_id}/undo")
+    assert "Update price" in undone.text
+    assert _query_value(harness.sqlite_path, "SELECT price FROM products WHERE id = 1") == 100
+
+    sheet = harness.client.get(f"/admin/invoices/items/{item_id}/match")
+    assert "Which shop product is this?" in sheet.text
+    not_sold = harness.client.post(f"/admin/invoices/items/{item_id}/match", data={"product_id": ""})
+    assert "Not sold in the shop" in not_sold.text
+    assert _query_value(harness.sqlite_path, "SELECT product_id FROM supplier_product_matches") is None
+
+    photo = harness.client.get(f"/admin/invoices/{invoice_id}/pages/1")
+    assert photo.headers["content-type"] == "image/jpeg"
+    assert harness.client.get(f"/admin/invoices/{invoice_id}/pages/9").status_code == 404

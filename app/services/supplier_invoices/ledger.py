@@ -107,26 +107,37 @@ def _versions(group: list[Page]) -> dict[tuple[str, int], list[Page]]:
     return {key: list(by_page.values()) for key, by_page in versions.items()}
 
 
-def build_invoices(pages: list[Page]) -> tuple[list[Invoice], int]:
-    """Group pages into one invoice per supplier and date, and count dates that failed."""
+def _missing_pages(pages: list[Page]) -> list[int]:
+    """Return the page numbers of this printing that have no photo."""
+    page_count = max(p.page_count for p in pages)
+    return sorted(set(range(1, page_count + 1)) - {p.page_no for p in pages})
+
+
+def build_invoices(pages: list[Page]) -> tuple[list[Invoice], list[str]]:
+    """Group pages into one invoice per supplier and date, and describe each date that failed."""
     by_key: dict[tuple[str, str], list[Page]] = defaultdict(list)
     for page in pages:
         by_key[(page.supplier, page.invoice_date)].append(page)
 
     invoices: list[Invoice] = []
-    failures = 0
+    failures: list[str] = []
     for (supplier, invoice_date), group in sorted(by_key.items()):
         valid: list[Invoice] = []
+        reasons: list[str] = []
         for (invoice_no, page_count), version_pages in _versions(group).items():
             invoice, problems = merge_version(version_pages)
             if invoice is None or problems:
                 label = f"{supplier} {invoice_date} invoice {invoice_no} ({page_count} page)"
                 for problem in problems:
                     logger.error("%s from %s: %s", label, _files(version_pages), problem)
+                missing = _missing_pages(version_pages)
+                if missing:
+                    reasons.append(f"no photo of page {', '.join(map(str, missing))} of {page_count}")
+                reasons.extend(problems)
                 continue
             valid.append(invoice)
         if not valid:
-            failures += 1
+            failures.append(f"{supplier} {invoice_date}: {'; '.join(reasons) or 'no readable page'}")
             continue
         # A later copy of the same date's invoice is a revision (e.g. the paper copy delivered
         # with the goods after a morning pre-order), so the newest photo wins.
@@ -141,6 +152,34 @@ def build_invoices(pages: list[Page]) -> tuple[list[Invoice], int]:
             )  # fmt: skip
         invoices.append(chosen)
     return invoices, failures
+
+
+def invoice_id_for_photo(conn: sqlite3.Connection, source_sha256: str) -> int | None:
+    """Return the id of the stored invoice that holds this photo, if any."""
+    row = conn.execute(
+        "SELECT invoice_id FROM supplier_invoice_pages WHERE source_sha256 = ?", (source_sha256,)
+    ).fetchone()
+    return None if row is None else int(row[0])
+
+
+def invoice_id_for_date(conn: sqlite3.Connection, supplier: str, invoice_date: str) -> int | None:
+    """Return the id of this supplier's stored invoice for this date, if any."""
+    row = conn.execute(
+        "SELECT id FROM supplier_invoices WHERE supplier = ? AND invoice_date = ?", (supplier, invoice_date)
+    ).fetchone()
+    return None if row is None else int(row[0])
+
+
+def connect(db_path: Path) -> sqlite3.Connection:
+    """Open the database with the same settings the app uses."""
+    if not db_path.parent.is_dir():
+        raise FileNotFoundError(f"database folder {db_path.parent} does not exist")
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode = WAL;")
+    conn.execute("PRAGMA foreign_keys = ON;")
+    conn.execute("PRAGMA synchronous = FULL;")
+    conn.execute("PRAGMA busy_timeout = 5000;")
+    return conn
 
 
 def apply_schema(conn: sqlite3.Connection) -> None:

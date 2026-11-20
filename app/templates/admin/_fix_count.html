@@ -1,0 +1,1 @@
+<span id="fix-count" class="pill {{ 'warn' if count else 'ok' }}" {% if oob %}hx-swap-oob="outerHTML"{% endif %}>{% if count %}{{ count }} to fix{% else %}<span class="icon">check</span>All done{% endif %}</span>

@@ -1,0 +1,15 @@
+<div class="veil" onclick="closeSheet()"></div>
+<div class="sheet tall" role="dialog" aria-label="Invoice photos">
+    <div class="grab"></div>
+    <div class="sheet-head">
+        <h3>Invoice photo{{ 's' if pages|length != 1 }}</h3>
+        <button class="icon-btn" type="button" onclick="closeSheet()" aria-label="Close"><span class="icon">close</span></button>
+    </div>
+    <p class="hint">Tap a photo to open it full size and zoom.</p>
+    {% for n in pages %}
+    <a class="photo" href="/admin/invoices/{{ invoice_id }}/pages/{{ n }}" target="_blank" rel="noopener">
+        <img src="/admin/invoices/{{ invoice_id }}/pages/{{ n }}" alt="Invoice page {{ n }}" loading="lazy">
+        <span class="thumb-n">Page {{ n }}</span>
+    </a>
+    {% endfor %}
+</div>

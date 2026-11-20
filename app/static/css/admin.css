@@ -52,6 +52,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .sec-r { font-weight: 600; text-transform: none; letter-spacing: 0; }
 .hint, .muted { margin: 0; font-size: 13px; color: var(--muted); }
 .notice { margin: 0; font-size: 14px; background: var(--warn-bg); border: 2px solid var(--ink); border-radius: 10px; padding: 8px 12px; }
+.notice-bad { background: var(--bad-bg); color: var(--ink); box-shadow: 3px 3px 0 var(--bad); overflow-wrap: anywhere; }
+.notice-bad b { color: var(--bad); }
+.notice code { font-size: 12.5px; background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+/* The banner is a flex item only when it has something to say. */
+#reader-status { display: contents; }
 .warn-text { color: var(--warn); }
 .form-error { margin: 0; color: var(--bad); font-weight: 650; font-size: 14px; }
 .btn { border: 2px solid var(--ink); border-radius: 8px; padding: 11px 16px; font-weight: 800; background: var(--blue); color: var(--white); box-shadow: 4px 4px 0 var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; }

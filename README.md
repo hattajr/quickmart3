@@ -88,11 +88,19 @@ Answers are cached in `data/supplier_invoice_cache/`, so a rerun costs nothing.
 
 The admin page (`/admin`) has two tabs, built for a phone: **Products** to search, add, edit and delete products, and **Invoices** to send this week's invoice photos (Take photo or From gallery, one photo per page) and check prices.
 
-The app only queues the photos (`supplier_invoice_uploads`). A worker on the host reads them with the same `claude -p` reader as above, one upload at a time:
+The app only queues the photos (`supplier_invoice_uploads`). The `invoice-worker` container reads them with the same `claude -p` reader as above, one upload at a time. It is the app image plus Claude Code (version pinned in the `Dockerfile`), and it signs in with a subscription token:
 
-```bash
-make invoice-worker   # or install deploy/quickmart-invoice-worker.service as a systemd user service
-```
+1. Run `claude setup-token` on any machine where you can open a browser, and put the token in `.env.prod` as `CLAUDE_CODE_OAUTH_TOKEN`.
+2. `docker compose --env-file .env.prod up -d --build` starts it with the rest of the stack. After changing the token, `docker compose --env-file .env.prod up -d invoice-worker` restarts it with the new one.
+
+For dev, `make invoice-worker` runs the same worker on your machine with its own `claude` login (`DB=` picks the database).
+
+Everything that goes wrong shows on the Invoices tab, so the phone always says whether reading works:
+
+- **The reader isn't running:** it writes a heartbeat file beside the database (`.supplier-invoice-worker.json`) every 10 seconds; after 45 seconds without one, the tab says so with the commands to start it and see its logs.
+- **The token is missing or expired, the usage limit is reached, Claude is overloaded, or `claude` is missing:** these stop every photo, so the upload goes back in line with the reason on its card, the tab shows Claude's own message and what to do, and the worker tries again by itself (every 5 minutes for the login, 15 for the limit).
+- **One photo fails** (unreadable, Claude timed out after 10 minutes, rows that don't add up): the upload fails with the reason per photo and a Try again button.
+- **A price update or match change fails:** a red toast with the reason; server errors show their status code.
 
 When an invoice is read, the phone opens its price check:
 

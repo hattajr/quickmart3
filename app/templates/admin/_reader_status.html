@@ -1,0 +1,23 @@
+<div id="reader-status" hx-get="/admin/invoices/reader" hx-trigger="every 15s" hx-swap="outerHTML">
+    {% if not reader.running %}
+    <div class="notice notice-bad" role="alert">
+        <b>The invoice reader isn't running.</b>
+        Photos you send wait here until it starts. On the server, start it with
+        <code>docker compose up -d invoice-worker</code>, and see why it stopped with
+        <code>docker compose logs invoice-worker</code>.
+    </div>
+    {% elif reader.problem_kind %}
+    <div class="notice notice-bad" role="alert">
+        <b>{{ reader_problem_titles[reader.problem_kind] }}.</b>
+        Claude says: “{{ reader.problem }}”.
+        {% if reader.problem_kind == 'login' %}
+        On the server, run <code>claude setup-token</code>, put the token in <code>.env.prod</code> as
+        <code>CLAUDE_CODE_OAUTH_TOKEN</code>, then run <code>docker compose up -d invoice-worker</code>.
+        {% elif reader.problem_kind == 'missing' %}
+        Rebuild the reader on the server with <code>docker compose up -d --build invoice-worker</code>.
+        {% endif %}
+        Waiting photos are read by themselves once it works again; the reader tries every
+        {{ reader_retry_minutes[reader.problem_kind] }} minutes.
+    </div>
+    {% endif %}
+</div>

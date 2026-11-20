@@ -5,17 +5,31 @@
         {% if u.status == 'waiting' %}
         <h3>Waiting to be read</h3>
         <span class="kv">{{ u.photo_count }} photo{{ 's' if u.photo_count != 1 }} · sent {{ u.waited_minutes() }} min ago</span>
-        <div class="bar"><i></i></div>
-        {% if u.waited_minutes() >= hint_minutes %}
-        <span class="kv warn-text">Still waiting. The invoice reader on the server may be stopped.</span>
+        {% set stuck = not reader.running or u.message or reader.problem_kind %}
+        {% if not stuck %}<div class="bar"><i></i></div>{% endif %}
+        {% if not reader.running %}
+        <span class="kv warn-text">The invoice reader isn't running, so this waits until it starts. See the note at the top.</span>
+        {% elif u.message %}
+        <span class="kv warn-text">{{ u.message }}. It is read by itself once that's fixed. See the note at the top.</span>
+        {% elif reader.problem_kind %}
+        <span class="kv warn-text">{{ reader_problem_titles[reader.problem_kind] }}, so this waits. See the note at the top.</span>
         {% else %}
         <span class="kv">You can close the app. The prices show up here when it's done.</span>
         {% endif %}
+        {% if stuck %}
+        <div class="card-actions">
+            <button class="chipbtn" hx-post="/admin/invoices/uploads/{{ u.id }}/delete" hx-target="#upload-{{ u.id }}" hx-swap="outerHTML"><span class="icon">delete</span>Delete</button>
+        </div>
+        {% endif %}
         {% elif u.status == 'reading' %}
         <h3>Reading your invoice</h3>
+        {% if reader.running %}
         <span class="kv">{{ u.message or 'Starting' }} · about 2 minutes a page</span>
         <div class="bar"><i></i></div>
         <span class="kv">You can close the app. The prices show up here when it's done.</span>
+        {% else %}
+        <span class="kv warn-text">The invoice reader stopped while reading this. It starts again when the reader is back. See the note at the top.</span>
+        {% endif %}
         {% elif u.status == 'failed' %}
         <h3>Couldn't read this invoice</h3>
         <span class="kv">{{ u.message }}</span>

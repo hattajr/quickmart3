@@ -1,6 +1,7 @@
 """Read invoice photos sent from the admin page, one upload at a time, with headless Claude Code.
 
-Runs on the host, where `claude` is logged in to the subscription; the app only queues photos.
+The app only queues photos. This runs as the `invoice-worker` container (signed in with
+CLAUDE_CODE_OAUTH_TOKEN), or on a dev machine where `claude` is logged in.
 Usage: uv run python -m app.services.supplier_invoices.worker --db data/quickmart.sqlite3
 """
 
@@ -12,6 +13,7 @@ import sqlite3
 import sys
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from types import FrameType
 
@@ -24,12 +26,14 @@ from app.services.supplier_invoices.ledger import (
     load_known_products,
     store_invoice,
 )
-from app.services.supplier_invoices.parse import PAGE_MODEL_DEFAULT, Page, parse_photo
+from app.services.supplier_invoices.parse import PAGE_MODEL_DEFAULT, ClaudeError, Page, parse_photo
+from app.services.supplier_invoices.reader_status import PROBLEM_RETRY_SECONDS, PROBLEM_TITLES, Heartbeat, status_path
 from app.services.supplier_invoices.uploads import (
     claim_next,
     fail_upload,
     finish_upload,
     recover_interrupted,
+    requeue_upload,
     set_progress,
     upload_photos,
 )
@@ -68,6 +72,12 @@ def _read_pages(
             path.write_bytes(photo.image)
             try:
                 page = parse_photo(path, photo.sha256, rotate, model, cache_dir, known)
+            except ClaudeError as error:
+                if error.kind in PROBLEM_RETRY_SECONDS:
+                    raise
+                logger.exception("upload %d photo %d: claude failed", upload_id, photo.position)
+                problems.append(f"Photo {photo.position}: {_short(error)}")
+                continue
             except Exception as error:
                 logger.exception("upload %d photo %d: parse failed", upload_id, photo.position)
                 problems.append(f"Photo {photo.position}: {_short(error)}")
@@ -116,6 +126,66 @@ class _Stop:
         self.requested = True
 
 
+def handle_upload(
+    conn: sqlite3.Connection, upload_id: int, model: str, rotate: str, cache_dir: Path, heartbeat: Heartbeat
+) -> int:
+    """Read one claimed upload; return the seconds to wait before the next one, 0 to go on."""
+    try:
+        process_upload(conn, upload_id, model, rotate, cache_dir)
+    except ClaudeError as error:
+        if error.kind in PROBLEM_RETRY_SECONDS:
+            requeue_upload(conn, upload_id, f"{PROBLEM_TITLES[error.kind]}: {error}")
+            heartbeat.set_problem(error.kind, str(error))
+            logger.warning("upload %d back in line, claude %s problem: %s", upload_id, error.kind, error)
+            return PROBLEM_RETRY_SECONDS[error.kind]
+        logger.exception("upload %d: claude failed", upload_id)
+        fail_upload(conn, upload_id, f"Claude failed: {_short(error)}")
+        return 0
+    except Exception as error:
+        logger.exception("upload %d: worker error", upload_id)
+        fail_upload(conn, upload_id, f"The reader hit an error: {_short(error)}")
+        return 0
+    heartbeat.clear_problem()
+    return 0
+
+
+def _wait(stop: _Stop, seconds: int) -> None:
+    for _ in range(seconds):
+        if stop.requested:
+            return
+        time.sleep(1)
+
+
+@dataclass(frozen=True)
+class Settings:
+    model: str
+    rotate: str
+    cache_dir: Path
+    poll_seconds: int
+    once: bool
+
+
+def _serve(conn: sqlite3.Connection, heartbeat: Heartbeat, stop: _Stop, settings: Settings) -> None:
+    apply_schema(conn)
+    # Only one worker runs (the lock in run), so anything still marked as being read was cut off.
+    requeued = recover_interrupted(conn)
+    if requeued:
+        logger.info("requeued %d upload(s) a previous run left half read", requeued)
+    while not stop.requested:
+        upload_id = claim_next(conn)
+        if upload_id is None:
+            if settings.once:
+                return
+            _wait(stop, settings.poll_seconds)
+            continue
+        logger.info("reading upload %d", upload_id)
+        pause_seconds = handle_upload(conn, upload_id, settings.model, settings.rotate, settings.cache_dir, heartbeat)
+        if pause_seconds:
+            if settings.once:
+                return
+            _wait(stop, pause_seconds)
+
+
 def run(db_path: Path, cache_dir: Path, model: str, rotate: str, poll_seconds: int, once: bool) -> None:
     """Process uploads until stopped, or until the queue is empty when once is set."""
     stop = _Stop()
@@ -129,31 +199,16 @@ def run(db_path: Path, cache_dir: Path, model: str, rotate: str, poll_seconds: i
         except BlockingIOError:
             raise SystemExit(f"another worker holds {lock_path}; only one may run") from None
         conn = connect(db_path)
+        heartbeat = Heartbeat(status_path(db_path))
+        heartbeat.start()
+        logger.info("waiting for invoice uploads in %s", db_path)
         try:
-            apply_schema(conn)
-            # Only one worker runs (the lock above), so anything still marked as being read was cut off.
-            requeued = recover_interrupted(conn)
-            if requeued:
-                logger.info("requeued %d upload(s) a previous run left half read", requeued)
-            logger.info("waiting for invoice uploads in %s", db_path)
-            while not stop.requested:
-                upload_id = claim_next(conn)
-                if upload_id is None:
-                    if once:
-                        return
-                    for _ in range(poll_seconds):
-                        if stop.requested:
-                            return
-                        time.sleep(1)
-                    continue
-                logger.info("reading upload %d", upload_id)
-                try:
-                    process_upload(conn, upload_id, model, rotate, cache_dir)
-                except Exception as error:
-                    logger.exception("upload %d: worker error", upload_id)
-                    fail_upload(conn, upload_id, f"The reader hit an error: {_short(error)}")
+            _serve(conn, heartbeat, stop, Settings(model, rotate, cache_dir, poll_seconds, once))
         finally:
-            conn.close()
+            try:
+                heartbeat.stop()
+            finally:
+                conn.close()
 
 
 def main() -> int:

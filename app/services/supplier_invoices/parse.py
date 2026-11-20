@@ -23,6 +23,56 @@ PAGE_MODEL_DEFAULT = "opus"
 ORIENTATION_MODEL = "sonnet"
 # Bump when PAGE_PROMPT or PAGE_SCHEMA changes so cached answers are not reused.
 CACHE_VERSION = 2
+CLAUDE_MESSAGE_CHARS_MAX = 300
+
+# What the shop owner has to do about a failed `claude -p` run. login, limit, busy and missing
+# hit every photo alike, so the worker waits and retries; timeout and other belong to one photo.
+CLAUDE_ERROR_KINDS = ("login", "limit", "busy", "missing", "timeout", "other")
+# Matched against Claude Code's own error text (e.g. "Not logged in · Please run /login").
+_LOGIN_HINTS = ("not logged in", "/login", "invalid api key", "oauth", "authenticat", "unauthorized", "revoked")
+_LIMIT_HINTS = ("usage limit", "rate limit", "limit reached", "hit your limit", "quota", "credit balance")
+_BUSY_HINTS = ("overloaded",)
+
+
+class ClaudeError(RuntimeError):
+    """A failed `claude -p` run with Claude's own words and its kind (see CLAUDE_ERROR_KINDS)."""
+
+    def __init__(self, kind: str, message: str) -> None:
+        if kind not in CLAUDE_ERROR_KINDS:
+            raise ValueError(f"unknown claude error kind {kind!r}")
+        super().__init__(message)
+        self.kind = kind
+
+
+def classify_claude_failure(text: str, api_status: int | None) -> str:
+    """Return the kind of a failed run from Claude's message and HTTP status, if any."""
+    lowered = text.lower()
+    if api_status in (401, 403) or any(hint in lowered for hint in _LOGIN_HINTS):
+        return "login"
+    if api_status == 429 or any(hint in lowered for hint in _LIMIT_HINTS):
+        return "limit"
+    if (api_status is not None and api_status >= 500) or any(hint in lowered for hint in _BUSY_HINTS):
+        return "busy"
+    return "other"
+
+
+def claude_failure(stdout: str, stderr: str, returncode: int) -> ClaudeError:
+    """Turn a failed run's output, JSON envelope or plain text, into a ClaudeError."""
+    text = ""
+    api_status: int | None = None
+    try:
+        envelope = json.loads(stdout)
+    except json.JSONDecodeError:
+        envelope = None
+    if isinstance(envelope, dict):
+        text = str(envelope.get("result") or "")
+        status = envelope.get("api_error_status")
+        api_status = status if isinstance(status, int) else None
+    text = " ".join((text or stderr or stdout).split()) or f"claude exited {returncode} without a message"
+    if len(text) > CLAUDE_MESSAGE_CHARS_MAX:
+        text = text[: CLAUDE_MESSAGE_CHARS_MAX - 1] + "…"
+    return ClaudeError(classify_claude_failure(text, api_status), text)
+
 
 ORIENTATION_PROMPT = """Look at the photo at {path} with the Read tool.
 How many degrees must the photo be rotated CLOCKWISE so that the printed text reads upright,
@@ -148,17 +198,29 @@ def run_claude(message: str, schema: dict[str, object], model: str, work_dir: Pa
         "--json-schema", json.dumps(schema),
         "--no-session-persistence", "--strict-mcp-config", "--disable-slash-commands",
     ]  # fmt: skip
-    result = subprocess.run(
-        command, cwd=work_dir, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT_SECONDS, check=False
-    )
+    try:
+        result = subprocess.run(
+            command, cwd=work_dir, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT_SECONDS, check=False
+        )
+    except FileNotFoundError:
+        raise ClaudeError("missing", "The claude program is not installed where the reader runs.") from None
+    except subprocess.TimeoutExpired:
+        # The default message repeats the whole command, prompt included, so say it plainly.
+        minutes = CLAUDE_TIMEOUT_SECONDS // 60
+        raise ClaudeError("timeout", f"Claude took longer than {minutes} minutes on this photo.") from None
     if result.returncode != 0:
-        raise RuntimeError(f"claude exited {result.returncode}: {result.stderr or result.stdout}")
-    envelope = json.loads(result.stdout)
+        raise claude_failure(result.stdout, result.stderr, result.returncode)
+    try:
+        envelope = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        raise ClaudeError("other", f"Claude's answer was not JSON: {result.stdout[:200]}") from None
+    if not isinstance(envelope, dict):
+        raise ClaudeError("other", f"Claude's answer was not a JSON object: {result.stdout[:200]}")
     if envelope.get("is_error"):
-        raise RuntimeError(f"claude reported an error: {envelope.get('result')}")
+        raise claude_failure(result.stdout, result.stderr, result.returncode)
     structured = envelope.get("structured_output")
     if not isinstance(structured, dict):
-        raise RuntimeError(f"claude returned no structured output: {str(envelope.get('result'))[:200]}")
+        raise ClaudeError("other", f"Claude answered without the invoice data: {str(envelope.get('result'))[:200]}")
     return structured
 
 

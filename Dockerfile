@@ -1,5 +1,5 @@
 # Use the official uv Docker image for Python 3.13
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS app
 
 # Set working directory
 WORKDIR /app
@@ -33,3 +33,19 @@ EXPOSE 8756
 # Run the application with uv
 # The Tailwind CSS compilation will happen on startup in main.py
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8756", "--workers", "1"]
+
+# The invoice photo reader: the app image plus headless Claude Code (`claude -p`).
+# It signs in with CLAUDE_CODE_OAUTH_TOKEN (made by `claude setup-token`), passed at runtime.
+FROM app AS invoice-worker
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+USER appuser
+# Pinned so a rebuild reads invoices the same way; bump it on purpose.
+ARG CLAUDE_CODE_VERSION=2.1.329
+RUN curl -fsSL https://claude.ai/install.sh | bash -s "$CLAUDE_CODE_VERSION" && \
+    /home/appuser/.local/bin/claude --version
+ENV PATH="/home/appuser/.local/bin:$PATH" \
+    DISABLE_AUTOUPDATER=1
+CMD ["uv", "run", "--no-dev", "python", "-m", "app.services.supplier_invoices.worker", "--db", "/data/quickmart.sqlite3"]

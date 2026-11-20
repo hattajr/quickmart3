@@ -193,3 +193,55 @@ JOIN supplier_invoices v ON v.id = i.invoice_id
 JOIN supplier_products p ON p.id = i.product_id
 WHERE i.struck_out = 0 AND i.unit_price > 0
 WINDOW w AS (PARTITION BY p.id ORDER BY v.invoice_date);
+
+-- Invoice photos sent from the admin page. The host worker
+-- (python -m app.services.supplier_invoices.worker) reads waiting uploads with claude -p,
+-- stores the invoice, then drops the upload's photos (the invoice keeps its own copy).
+CREATE TABLE IF NOT EXISTS supplier_invoice_uploads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'reading', 'done', 'failed')),
+    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+    invoice_id INTEGER NULL,
+    message TEXT NOT NULL DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    started_at TEXT NULL,
+    finished_at TEXT NULL,
+    FOREIGN KEY (invoice_id) REFERENCES supplier_invoices(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoice_uploads_status ON supplier_invoice_uploads(status, id);
+
+CREATE TABLE IF NOT EXISTS supplier_invoice_upload_photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    upload_id INTEGER NOT NULL,
+    position INTEGER NOT NULL CHECK (position >= 1),
+    file_name TEXT NOT NULL,
+    image BLOB NOT NULL,
+    sha256 TEXT NOT NULL,
+    FOREIGN KEY (upload_id) REFERENCES supplier_invoice_uploads(id) ON DELETE CASCADE,
+    UNIQUE (upload_id, position)
+);
+
+-- The shop product a supplier product is sold as, confirmed by the admin.
+-- product_id NULL means the shop does not sell it, so price checks leave it out.
+CREATE TABLE IF NOT EXISTS supplier_product_matches (
+    supplier_product_id INTEGER PRIMARY KEY,
+    product_id INTEGER NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (supplier_product_id) REFERENCES supplier_products(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+-- What the admin did with one invoice line's price suggestion. old_* columns let Undo
+-- put the shop price back.
+CREATE TABLE IF NOT EXISTS supplier_price_reviews (
+    item_id INTEGER PRIMARY KEY,
+    action TEXT NOT NULL CHECK (action IN ('updated', 'skipped')),
+    product_id INTEGER NULL,
+    old_price INTEGER NULL,
+    new_price INTEGER NULL,
+    old_purchase_price INTEGER NULL,
+    new_purchase_price INTEGER NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES supplier_invoice_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+);

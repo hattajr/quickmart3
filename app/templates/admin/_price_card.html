@@ -1,0 +1,72 @@
+{% set s = line.shop %}{% set r = line.review %}{% set id = line.item_id %}
+<div class="scard{% if r %} dim{% endif %}" id="line-{{ id }}">
+    <div>
+        <div class="s-name">{{ line.name_latin }}</div>
+        <div class="s-ko">{{ line.product_name }} · {{ line.cost.basis }}</div>
+    </div>
+    <div class="s-match">
+        {% if s %}Shop: <b>{{ s.label }}</b>{% if line.check_match %}<span class="pill warn"><span class="icon">warning</span>Check match</span>{% endif %}
+        {% elif line.status == 'not_sold' %}<span class="pill mute">Not sold in the shop</span>
+        {% else %}<span class="pill bad">Not in your shop</span>{% endif %}
+        {% if not r and (s or line.status == 'not_sold') %}
+        <button class="linkbtn" type="button" hx-get="/admin/invoices/items/{{ id }}/match" hx-target="#sheet"><span class="icon">swap_horiz</span>Change</button>
+        {% endif %}
+    </div>
+
+    {% if s %}
+    {% set m = line.markup_now_pct %}
+    <form class="stack-sm" x-data="{ price: '{{ (r.new_price if r and r.new_price else line.suggested_price)|won }}', pct: {{ 'null' if r else markup_suggest_pct }} }"
+        hx-post="/admin/invoices/items/{{ id }}/update" hx-target="#line-{{ id }}" hx-swap="outerHTML">
+        <input type="hidden" name="product_id" value="{{ s.id }}">
+        <div class="s-grid">
+            <div class="cell">
+                <div class="cell-l">Cost/pc</div>
+                <div class="cell-v">{{ line.cost.cost_won|won }}</div>
+                {% if line.prev_cost_won and line.prev_cost_won != line.cost.cost_won %}
+                {% set up = line.cost.cost_won > line.prev_cost_won %}
+                <span class="cell-n {{ 'up' if up else 'down' }}">{{ 'up' if up else 'down' }} from {{ line.prev_cost_won|won }}</span>
+                {% else %}
+                <span class="cell-n">{{ 'same as last time' if line.prev_cost_won else 'first invoice' }}</span>
+                {% endif %}
+            </div>
+            <div class="cell">
+                <div class="cell-l">Now</div>
+                <div class="cell-v">{{ s.price|won }}</div>
+                <span class="cell-n {{ 'up' if line.status == 'fix' }}">{{ '+' if m is not none and m >= 0 }}{{ m }}% on cost</span>
+            </div>
+            <div class="cell suggest">
+                <label class="cell-l" for="price-{{ id }}">New price</label>
+                <input id="price-{{ id }}" class="pinput" name="price" inputmode="numeric" autocomplete="off" x-model="price"
+                    @input="pct = null" {% if r %}disabled{% endif %}>
+                <span class="cell-n" x-text="pct === null ? '{{ 'set by you' if r else 'typed by you' }}' : 'cost +' + pct + '%, rounded up'">cost +{{ markup_suggest_pct }}%, rounded up</span>
+            </div>
+        </div>
+        {% if not r %}
+        <div class="mk" role="group" aria-label="Markup on cost">
+            {% for pct, value in line.suggestions %}
+            <button type="button" class="mk-b" @click="pct = {{ pct }}; price = '{{ value|won }}'" :aria-pressed="(pct === {{ pct }}).toString()">
+                <span class="mk-p">+{{ pct }}%</span><span class="mk-v">{{ value|won }}</span>
+            </button>
+            {% endfor %}
+        </div>
+        <div class="s-actions">
+            <button type="button" class="b-skip" hx-post="/admin/invoices/items/{{ id }}/skip" hx-target="#line-{{ id }}" hx-swap="outerHTML"><span class="icon">close</span>Skip</button>
+            <button type="submit" class="b-upd"><span class="icon">check</span>Update price</button>
+        </div>
+        {% endif %}
+    </form>
+    {% elif not r %}
+    <div class="s-actions">
+        <button type="button" class="b-skip" hx-post="/admin/invoices/items/{{ id }}/skip" hx-target="#line-{{ id }}" hx-swap="outerHTML"><span class="icon">close</span>Skip</button>
+        <button type="button" class="b-upd" hx-get="/admin/invoices/items/{{ id }}/match" hx-target="#sheet"><span class="icon">search</span>Pick product</button>
+    </div>
+    {% endif %}
+
+    {% if r %}
+    <div class="done-line">
+        {% if r.action == 'updated' %}<span class="pill ok"><span class="icon">check</span>Updated to ₩{{ r.new_price|won }}</span>
+        {% else %}<span class="pill mute">Skipped</span>{% endif %}
+        <button class="linkbtn" type="button" hx-post="/admin/invoices/items/{{ id }}/undo" hx-target="#line-{{ id }}" hx-swap="outerHTML"><span class="icon">undo</span>Undo</button>
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,53 @@
+{% set v = form or product %}
+<div class="veil" onclick="closeSheet()"></div>
+<div class="sheet" role="dialog" aria-label="{{ 'Edit product' if product else 'Add product' }}">
+    <div class="grab"></div>
+    <div class="sheet-head">
+        <h3>{{ 'Edit product' if product else 'Add product' }}</h3>
+        <button class="icon-btn" type="button" onclick="closeSheet()" aria-label="Close"><span class="icon">close</span></button>
+    </div>
+    <form class="sheet-form" {% if product %}hx-post="/admin/products/{{ product.id }}/edit"{% else %}hx-post="/admin/products/add"{% endif %}
+        hx-target="#sheet">
+        <label class="field" for="f-name"><span>Name</span>
+            <input id="f-name" name="name" value="{{ v.name if v else '' }}" required maxlength="500">
+        </label>
+        <div class="fields2">
+            <label class="field" for="f-brand"><span>Brand</span><input id="f-brand" name="brand" value="{{ (v.brand or '') if v else '' }}"></label>
+            <label class="field" for="f-unit"><span>Unit</span><input id="f-unit" name="unit" value="{{ (v.unit or '') if v else '' }}"></label>
+        </div>
+        <div class="fields2">
+            <label class="field" for="f-price"><span>Price (₩)</span>
+                <input id="f-price" name="price" class="strong" inputmode="numeric" value="{{ v.price if v else '' }}" required>
+            </label>
+            <label class="field" for="f-stock"><span>Stock</span>
+                <input id="f-stock" name="stock" inputmode="numeric" value="{{ (v.stock or 0) if v else 0 }}">
+            </label>
+        </div>
+        <label class="field" for="f-barcode"><span>Barcode</span>
+            <input id="f-barcode" name="barcode" inputmode="numeric" value="{{ (v.barcode or '') if v else '' }}" placeholder="Scan or type">
+        </label>
+        <details class="more-fields" {% if v and (v.keyword or v.description or v.image_url) and not product %}open{% endif %}>
+            <summary>Search words, description and photo link</summary>
+            <label class="field" for="f-keyword"><span>Search words</span>
+                <input id="f-keyword" name="keyword" value="{{ (v.keyword or '') if v else '' }}" placeholder="Other names customers search for">
+            </label>
+            <label class="field" for="f-description"><span>Description</span>
+                <input id="f-description" name="description" value="{{ (v.description or '') if v else '' }}">
+            </label>
+            <label class="field" for="f-image"><span>Photo link</span>
+                <input id="f-image" name="image_url" value="{{ (v.image_url or '') if v else '' }}">
+            </label>
+        </details>
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <button class="btn" type="submit"><span class="icon">check</span>{{ 'Save' if product else 'Add product' }}</button>
+    </form>
+    {% if product %}
+    <div x-data="{ sure: false }" class="danger">
+        <button class="linkbtn danger-btn" type="button" x-show="!sure" @click="sure = true">
+            <span class="icon">delete</span>Delete product
+        </button>
+        <button class="btn danger-confirm" type="button" x-show="sure" x-cloak hx-delete="/admin/products/{{ product.id }}"
+            hx-target="#sheet">Tap again to delete {{ product.name }}</button>
+    </div>
+    {% endif %}
+</div>

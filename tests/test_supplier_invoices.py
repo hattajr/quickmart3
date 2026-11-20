@@ -106,7 +106,7 @@ def conn() -> sqlite3.Connection:
 def test_two_pages_merge_into_one_invoice() -> None:
     pages = [make_page("b.jpg", 2, 2, 5, (15, 15000)), make_page("a.jpg", 1, 2, 10, (15, 15000))]
     invoices, failures = build_invoices(pages)
-    assert failures == 0
+    assert failures == []
     assert [p.page_no for p in invoices[0].pages] == [1, 2]
     assert invoices[0].total_amount == 15000
 
@@ -114,14 +114,15 @@ def test_two_pages_merge_into_one_invoice() -> None:
 def test_duplicate_photo_of_same_page_is_ignored() -> None:
     pages = [make_page("a.jpg", 1, 1, 10, (10, 10000)), make_page("a 2.jpg", 1, 1, 10, (10, 10000))]
     invoices, failures = build_invoices(pages)
-    assert failures == 0
+    assert failures == []
     assert len(invoices[0].pages) == 1
 
 
 def test_missing_page_fails_the_totals_check() -> None:
     invoices, failures = build_invoices([make_page("a.jpg", 1, 2, 10, (15, 15000))])
     assert invoices == []
-    assert failures == 1
+    assert len(failures) == 1
+    assert "no photo of page 2 of 2" in failures[0]
 
 
 def test_newest_photo_wins_between_two_valid_versions() -> None:
@@ -131,7 +132,7 @@ def test_newest_photo_wins_between_two_valid_versions() -> None:
         make_page("PHOTO-2026-09-17-21-27-52 2.jpg", 2, 2, 5, (15, 15000)),
     ]
     invoices, failures = build_invoices(pages)
-    assert failures == 0
+    assert failures == []
     assert invoices[0].total_amount == 15000
     assert len(invoices[0].pages) == 2
 
@@ -139,7 +140,7 @@ def test_newest_photo_wins_between_two_valid_versions() -> None:
 def test_misread_page_total_is_overruled_by_item_sum() -> None:
     pages = [make_page("a.jpg", 1, 2, 10, (10, 10000)), make_page("b.jpg", 2, 2, 0, (10, 7777))]
     invoices, failures = build_invoices(pages)
-    assert failures == 0
+    assert failures == []
     assert invoices[0].total_amount == 10000
 
 
@@ -147,14 +148,14 @@ def test_disagreeing_totals_with_no_match_fail() -> None:
     pages = [make_page("a.jpg", 1, 2, 10, (11, 11000)), make_page("b.jpg", 2, 2, 0, (12, 12000))]
     invoices, failures = build_invoices(pages)
     assert invoices == []
-    assert failures == 1
+    assert len(failures) == 1
 
 
 def test_row_arithmetic_mismatch_fails() -> None:
     bad = Item("상품", "Product", "", "", 2, 1000, 1500, "", False)
     invoices, failures = build_invoices([make_page("a.jpg", 1, 1, 0, (2, 1500), items=[bad])])
     assert invoices == []
-    assert failures == 1
+    assert len(failures) == 1
 
 
 def test_different_dates_make_separate_invoices() -> None:
@@ -163,7 +164,7 @@ def test_different_dates_make_separate_invoices() -> None:
         make_page("b.jpg", 1, 1, 10, (10, 10000), invoice_date="2026-10-15"),
     ]
     invoices, failures = build_invoices(pages)
-    assert failures == 0
+    assert failures == []
     assert [i.invoice_date for i in invoices] == ["2026-09-17", "2026-10-15"]
 
 

@@ -1,0 +1,60 @@
+{% extends "admin/layout.html" %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<div class="upload" x-data="invoiceUpload({{ photos_max }})">
+    <input type="file" accept="image/*" capture="environment" x-ref="camera" @change="add($event)" hidden>
+    <input type="file" accept="image/*" multiple x-ref="gallery" @change="add($event)" hidden>
+
+    <div class="twobtn" x-show="!photos.length">
+        <button type="button" class="cam" @click="$refs.camera.click()"><span class="icon">photo_camera</span>Take photo</button>
+        <button type="button" class="gal" @click="$refs.gallery.click()"><span class="icon">image</span>From gallery</button>
+    </div>
+
+    <template x-if="photos.length">
+        <div class="staged">
+            <div class="thumbs">
+                <template x-for="(photo, index) in photos" :key="photo.url">
+                    <div class="thumb-wrap">
+                        <img :src="photo.url" :alt="'Page ' + (index + 1)">
+                        <span class="thumb-n" x-text="'Page ' + (index + 1)"></span>
+                        <button type="button" class="thumb-x" @click="remove(index)" :aria-label="'Remove page ' + (index + 1)"><span class="icon">close</span></button>
+                    </div>
+                </template>
+            </div>
+            <div class="addpage" x-show="photos.length < max">
+                <button type="button" class="chipbtn" @click="$refs.camera.click()"><span class="icon">add_a_photo</span>Add page</button>
+                <button type="button" class="chipbtn" @click="$refs.gallery.click()"><span class="icon">image</span>From gallery</button>
+            </div>
+            <button type="button" class="btn wide" @click="send()" :disabled="busy">
+                <span class="icon" x-text="busy ? 'hourglass_top' : 'send'"></span>
+                <span x-text="busy ? 'Sending…' : (photos.length === 1 ? 'Read invoice' : 'Read invoice (' + photos.length + ' pages)')"></span>
+            </button>
+        </div>
+    </template>
+    <p class="form-error" role="alert" x-show="error" x-text="error" x-cloak></p>
+    <p class="hint">Two-page invoice? Add both pages, then tap Read invoice.</p>
+</div>
+
+<div id="uploads" class="stack">
+    {% for u in uploads %}{% include "admin/_upload_card.html" %}{% endfor %}
+</div>
+
+<div class="sec-l">Recent invoices</div>
+{% if recent %}
+<div class="inv-list">
+    {% for r in recent %}
+    <a class="inv-row" href="/admin/invoices/{{ r.invoice.id }}">
+        <span class="paper" aria-hidden="true"></span>
+        <span class="prow-main">
+            <span class="prow-name">{{ r.invoice.invoice_date|nice_date }} · {{ r.invoice.supplier }}</span>
+            <span class="prow-sub">{{ r.invoice.page_count }} page{{ 's' if r.invoice.page_count != 1 }} · {{ r.lines|length }} products · ₩{{ r.invoice.total_amount|won }}</span>
+        </span>
+        {% if r.to_fix_count %}<span class="pill warn">{{ r.to_fix_count }} to fix</span>
+        {% else %}<span class="pill ok"><span class="icon">check</span>Done</span>{% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<p class="empty">No invoices yet. Take a photo of this week's invoice to start.</p>
+{% endif %}
+{% endblock %}

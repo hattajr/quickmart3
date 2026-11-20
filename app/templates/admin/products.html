@@ -1,37 +1,14 @@
-{% extends "shared/base.html" %}
-
-{% block main_content %}
-<div class="max-w-6xl mx-auto mt-4 p-4">
-    <div id="admin-content"></div>
-    <div id="toast-container" x-data class="fixed top-20 right-4 z-[1001] flex flex-col gap-2"></div>
+{% extends "admin/layout.html" %}
+{% block title %}Products{% endblock %}
+{% block content %}
+<div class="searchrow">
+    <label class="search" for="product-search"><span class="icon">search</span>
+        <input type="search" id="product-search" name="q" placeholder="Search {{ products|length }} products"
+            aria-label="Search products" autocomplete="off" hx-get="/admin/products/rows"
+            hx-trigger="input changed delay:250ms, search" hx-target="#product-rows" hx-swap="outerHTML">
+    </label>
+    <button class="addbtn" hx-get="/admin/products/new" hx-target="#sheet"><span class="icon">add</span>Add</button>
 </div>
-
-<dialog id="password-modal" x-data
-    class="fixed inset-0 m-auto w-96 p-6 bg-[#fff4da] border-3 rounded-xl border-gray-900 shadow-[10px_10px_0px] shadow-gray-900 backdrop:backdrop-blur-sm backdrop:bg-black/30"
-    x-init="setTimeout(() => $el.showModal(), 100)">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold">Admin Access</h2>
-        <button @click="$el.closest('dialog').close(); window.location = '/'" class="hover:opacity-80">
-            <span class="material-symbols-outlined text-2xl">close</span>
-        </button>
-    </div>
-    <form hx-post="/admin/verify" hx-target="#admin-content" hx-swap="innerHTML">
-        <div class="flex flex-col gap-4">
-            <div>
-                <label for="password" class="block text-sm font-medium mb-2">Password</label>
-                <input type="password" id="password" name="password" required autofocus
-                    class="w-full p-2 border-2 border-gray-900 rounded-md bg-white"
-                    placeholder="Enter admin password" />
-            </div>
-            <button type="submit"
-                class="bg-blue-500 text-white font-semibold py-2 px-4 border-2 rounded-md border-gray-900 shadow-[4px_4px_0px] shadow-gray-900 hover:bg-blue-600 active:scale-95 cursor-pointer">
-                Access Admin
-            </button>
-        </div>
-    </form>
-</dialog>
-{% endblock %}
-
-{% block carousel %}
-<!-- Carousel disabled on admin page -->
+<div class="sec-l">Sorted by name<span class="sec-r">Tap to edit</span></div>
+{% include "admin/_product_rows.html" %}
 {% endblock %}

@@ -1,0 +1,38 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ review.invoice.invoice_date|nice_date }} invoice{% endblock %}
+{% block content %}
+{% set inv = review.invoice %}
+<a class="back" href="/admin/invoices"><span class="icon">arrow_back</span>Invoices</a>
+<div class="invcard">
+    <span class="paper big" aria-hidden="true"></span>
+    <div class="invcard-main">
+        <h3>{{ inv.supplier }} · {{ inv.invoice_date|nice_date }}</h3>
+        <span class="kv">{{ inv.page_count }} page{{ 's' if inv.page_count != 1 }} · {{ review.lines|length }} products · total <b>₩{{ inv.total_amount|won }}</b></span>
+        <span><span class="pill ok"><span class="icon">check</span>Rows add up to the printed total</span></span>
+        {% if pages %}
+        <button class="linkbtn" hx-get="/admin/invoices/{{ inv.id }}/photos" hx-target="#sheet"><span class="icon">zoom_in</span>View photo{{ 's' if pages|length != 1 }}</button>
+        {% endif %}
+    </div>
+</div>
+{% if note %}<p class="notice">{{ note }}</p>{% endif %}
+
+<div class="sec-l">Prices to check {% with count = review.to_fix_count %}{% include "admin/_fix_count.html" %}{% endwith %}</div>
+<p class="hint">Listed when the shop price is under cost +{{ markup_flag_pct }}%. New price starts at cost +{{ markup_suggest_pct }}%.</p>
+{% for line in review.shown %}
+{% include "admin/_price_card.html" %}
+{% else %}
+<div class="empty"><span class="icon">task_alt</span><b>Every price on this invoice is fine</b></div>
+{% endfor %}
+
+{% if review.folded %}
+<div x-data="{ open: false }" class="stack">
+    <button class="more" type="button" @click="open = !open" :aria-expanded="open">
+        <span x-text="open ? 'Hide' : 'Show'">Show</span>&nbsp;{{ review.folded|length }} more priced OK or not sold here
+        <span class="icon" x-text="open ? 'expand_less' : 'expand_more'">expand_more</span>
+    </button>
+    <div class="stack" x-show="open" x-cloak>
+        {% for line in review.folded %}{% include "admin/_price_card.html" %}{% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "admin/layout.html" %}
+{% block title %}Log in{% endblock %}
+{% block header_action %}{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<form class="login" method="post" action="/admin/verify">
+    <h1>Admin</h1>
+    <p class="muted">Edit products and check invoice prices.</p>
+    <input type="hidden" name="next" value="{{ next }}">
+    <label class="field" for="password"><span>Password</span>
+        <input type="password" id="password" name="password" required autofocus autocomplete="current-password">
+    </label>
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <button class="btn" type="submit"><span class="icon">login</span>Log in</button>
+</form>
+{% endblock %}

@@ -1,0 +1,21 @@
+<div class="veil" onclick="closeSheet()"></div>
+<div class="sheet" role="dialog" aria-label="Pick the shop product">
+    <div class="grab"></div>
+    <div class="sheet-head">
+        <h3>Which shop product is this?</h3>
+        <button class="icon-btn" type="button" onclick="closeSheet()" aria-label="Close"><span class="icon">close</span></button>
+    </div>
+    <div class="prow-sub">{{ line.name_latin }} · {{ line.product_name }} · cost {{ line.cost.cost_won|won }}/pc</div>
+    <label class="search" for="match-q"><span class="icon">search</span>
+        <input type="search" id="match-q" name="q" placeholder="Search your products" aria-label="Search your products" autocomplete="off"
+            hx-get="/admin/invoices/items/{{ line.item_id }}/match/search" hx-trigger="input changed delay:250ms, search"
+            hx-target="#match-results">
+    </label>
+    <div class="sec-l">Closest names</div>
+    <div id="match-results" class="stack-sm">{% include "admin/_match_results.html" %}</div>
+    <button class="alt" type="button" hx-post="/admin/invoices/items/{{ line.item_id }}/match" hx-vals='{"product_id": ""}'
+        hx-target="#line-{{ line.item_id }}" hx-swap="outerHTML" {% if line.status == 'not_sold' %}aria-pressed="true"{% endif %}>
+        <span class="alt-main"><span class="prow-name">Not sold in the shop</span><span class="prow-sub">Leave it out of price checks from now on</span></span>
+    </button>
+    <p class="hint">Your pick is remembered, so next week this product matches by itself.</p>
+</div>

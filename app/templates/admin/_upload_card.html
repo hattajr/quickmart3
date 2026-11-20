@@ -1,0 +1,33 @@
+{% set waiting = u.status in ('waiting', 'reading') %}
+<div class="invcard" id="upload-{{ u.id }}" {% if waiting %}hx-get="/admin/invoices/uploads/{{ u.id }}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+    <span class="paper big" aria-hidden="true"></span>
+    <div class="invcard-main">
+        {% if u.status == 'waiting' %}
+        <h3>Waiting to be read</h3>
+        <span class="kv">{{ u.photo_count }} photo{{ 's' if u.photo_count != 1 }} · sent {{ u.waited_minutes() }} min ago</span>
+        <div class="bar"><i></i></div>
+        {% if u.waited_minutes() >= hint_minutes %}
+        <span class="kv warn-text">Still waiting. The invoice reader on the server may be stopped.</span>
+        {% else %}
+        <span class="kv">You can close the app. The prices show up here when it's done.</span>
+        {% endif %}
+        {% elif u.status == 'reading' %}
+        <h3>Reading your invoice</h3>
+        <span class="kv">{{ u.message or 'Starting' }} · about 2 minutes a page</span>
+        <div class="bar"><i></i></div>
+        <span class="kv">You can close the app. The prices show up here when it's done.</span>
+        {% elif u.status == 'failed' %}
+        <h3>Couldn't read this invoice</h3>
+        <span class="kv">{{ u.message }}</span>
+        <div class="card-actions">
+            <button class="chipbtn" hx-post="/admin/invoices/uploads/{{ u.id }}/delete" hx-target="#upload-{{ u.id }}" hx-swap="outerHTML"><span class="icon">delete</span>Delete</button>
+            {% if u.photo_count %}
+            <button class="chipbtn" hx-post="/admin/invoices/uploads/{{ u.id }}/retry" hx-target="#upload-{{ u.id }}" hx-swap="outerHTML"><span class="icon">refresh</span>Try again</button>
+            {% endif %}
+        </div>
+        {% else %}
+        <h3>Invoice read</h3>
+        {% if u.invoice_id %}<a class="linkbtn" href="/admin/invoices/{{ u.invoice_id }}">Open the price check</a>{% endif %}
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,7 @@
+<button class="prow" id="product-{{ p.id }}" hx-get="/admin/products/{{ p.id }}/sheet" hx-target="#sheet" {% if oob %}hx-swap-oob="outerHTML"{% endif %}>
+    <span class="prow-main">
+        <span class="prow-name">{{ p.name }}</span>
+        <span class="prow-sub">{{ [p.brand, p.unit]|select|join(' · ') }}{% if p.brand or p.unit %} · {% endif %}stock {{ p.stock or 0 }}</span>
+    </span>
+    <span class="price">₩{{ p.price|won }}</span>
+</button>

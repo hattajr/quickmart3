@@ -2,7 +2,7 @@
 {% block title %}Invoices{% endblock %}
 {% block content %}
 {% include "admin/_reader_status.html" %}
-<div class="upload" x-data="invoiceUpload({{ photos_max }})">
+<div class="panel" x-data="invoiceUpload({{ photos_max }})">
     <input type="file" accept="image/*" capture="environment" x-ref="camera" @change="add($event)" hidden>
     <input type="file" accept="image/*" multiple x-ref="gallery" @change="add($event)" hidden>
 

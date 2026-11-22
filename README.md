@@ -86,7 +86,7 @@ Answers are cached in `data/supplier_invoice_cache/`, so a rerun costs nothing.
 
 ### From the phone: the admin Invoices tab
 
-The admin page (`/admin`) has two tabs, built for a phone: **Products** to search, add, edit and delete products, and **Invoices** to send this week's invoice photos (Take photo or From gallery, one photo per page) and check prices.
+The admin page (`/admin`) has four tabs, built for a phone: **Products** to search, add, edit and delete products, **Invoices** to send this week's invoice photos (Take photo or From gallery, one photo per page) and check prices, and **Popular** and **Messages** (see [What customers want](#what-customers-want-popular-and-messages)).
 
 The app only queues the photos (`supplier_invoice_uploads`). The `invoice-worker` container reads them with the same `claude -p` reader as above, one upload at a time. It is the app image plus Claude Code (version pinned in the `Dockerfile`), and it signs in with a subscription token:
 
@@ -108,3 +108,16 @@ When an invoice is read, the phone opens its price check:
 - Cost per piece: a unit price equal to the amount with a per-box count is a box price and is divided by the count; a unit price below the amount is already per piece; an order-sheet note like `Quantity : 3 pcs` divides by 3.
 - **Update price** sets the shop `price` and `purchase_price` (the cost) and remembers the shop product for that supplier product (`supplier_product_matches`). **Skip** leaves it. **Undo** puts the old price back unless it was changed again since. Each decision is in `supplier_price_reviews`.
 - Shop products are guessed by name (rapidfuzz) until one is confirmed; **Change** picks another or marks it as not sold in the shop, which leaves it out from then on.
+
+## What customers want: Popular and Messages
+
+Two admin tabs show what customers do in the shop app, to help decide what to order next. Times are Korea time.
+
+**Popular** ranks the products customers added to the cart in the last 7, 14 or 30 days, counted back from now. A tap is a row in `search_selections`: the shop writes one each time a customer taps a product in search results or in the favourites chips, which puts it in their cart.
+
+- Products are ranked by taps; ties go to the one more people tapped. People are app sessions, and a tap with no session counts as its own person.
+- Each row shows the price and how the taps changed against the same number of days just before (**New** when nobody tapped it then).
+- Tapping a product opens its taps per day, its people, taps and pieces sold (`sold_items`) in those days, and an Edit product button.
+- The search words in `search_selections.search_query` are always empty: the shop clears the search box before it records the tap.
+
+**Messages** shows what customers sent from the shop's chat (`feedback_messages`, without hidden ones) as bubbles grouped by day, newest first. They're anonymous, so there's no reply. The Messages tab shows how many came in since you last opened it on that phone (kept in a cookie, `admin_messages_seen_id`).

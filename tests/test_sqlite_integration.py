@@ -29,6 +29,7 @@ MODULE_NAMES = [
     "app.routes.admin_common",
     "app.routes.admin",
     "app.routes.admin_invoices",
+    "app.routes.admin_customers",
     "app.routes.products",
     "app.routes.main",
 ]
@@ -62,6 +63,7 @@ def _build_test_app(secret_key: str, modules: dict[str, Any]) -> FastAPI:
     app.include_router(modules["app.routes.products"].router)
     app.include_router(modules["app.routes.admin"].router)
     app.include_router(modules["app.routes.admin_invoices"].router)
+    app.include_router(modules["app.routes.admin_customers"].router)
     return app
 
 
@@ -576,3 +578,63 @@ def test_invoices_tab_says_when_the_reader_is_stopped_or_cannot_sign_in(harness:
     assert "sign in to Claude" in banner and "Not logged in" in banner and "claude setup-token" in banner
     card = harness.client.get(f"/admin/invoices/uploads/{upload_id}").text
     assert "so this waits" in card and "Delete" in card
+
+
+def test_popular_tab_needs_login_and_shows_taps(harness: AppHarness) -> None:
+    """The Popular tab lists tapped products, opens a product's days, and checks the days asked for."""
+    _seed_product(harness.sqlite_path, 1, "Indomie mie goreng", "mie")
+    with sqlite3.connect(harness.sqlite_path) as conn:
+        conn.executemany(
+            "INSERT INTO search_selections (session_id, product_id, product_name, search_query)"
+            " VALUES (?, 1, 'Indomie mie goreng', '')",
+            [("s1",), ("s2",)],
+        )
+    assert "Password" in harness.client.get("/admin/popular").text
+    assert harness.client.get("/admin/popular/list?days=14").status_code == 401
+
+    _login(harness)
+    page = harness.client.get("/admin/popular")
+    assert page.status_code == 200
+    assert "Indomie mie goreng" in page.text and 'aria-pressed="true"' in page.text
+
+    listing = harness.client.get("/admin/popular/list?days=30&full=1")
+    assert listing.status_code == 200 and "Indomie mie goreng" in listing.text
+
+    bad = harness.client.get("/admin/popular/list?days=10")
+    assert bad.status_code == 400 and "Pick one of 7, 14, 30 days." in bad.text
+
+    sheet = harness.client.get("/admin/popular/1/sheet?days=7")
+    assert sheet.status_code == 200
+    assert "Taps per day" in sheet.text and "/admin/products/1/sheet" in sheet.text
+    assert "no longer exists" in harness.client.get("/admin/popular/999/sheet").text
+
+
+def test_messages_tab_marks_messages_seen_on_this_phone(harness: AppHarness) -> None:
+    """Opening Messages shows them, then the count on the tab goes back to nothing."""
+    with sqlite3.connect(harness.sqlite_path) as conn:
+        conn.executemany(
+            "INSERT INTO feedback_messages (session_id, message, user_agent, is_deleted) VALUES ('s1', ?, 'iPhone', ?)",
+            [("Is there any chicken?", "N"), ("dasdasd", "Y")],
+        )
+    assert harness.client.get("/admin/messages/new-count").status_code == 401
+
+    _login(harness)
+    assert 'class="badge"' in harness.client.get("/admin/messages/new-count").text
+
+    page = harness.client.get("/admin/messages")
+    assert page.status_code == 200
+    assert "Is there any chicken?" in page.text and "dasdasd" not in page.text
+    assert "1 message, 1 new." in page.text
+
+    assert harness.client.get("/admin/messages/new-count").text == ""
+    again = harness.client.get("/admin/messages")
+    assert "1 message." in again.text and "New</span>" not in again.text
+
+
+def test_seen_message_cookie_ignores_anything_but_an_id(harness: AppHarness) -> None:
+    """A missing, garbled or oversized cookie counts every message as new."""
+    from app.routes.admin_customers import seen_message_id
+
+    assert seen_message_id("42") == 42
+    for bad in (None, "", "-3", "4.2", "abc", "9" * 20, str(2**63)):
+        assert seen_message_id(bad) == 0

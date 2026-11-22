@@ -1,0 +1,46 @@
+{% set period = report.period %}
+<section id="popular" class="stack-sm" aria-label="Products added to the cart">
+    <div class="periods">
+        {% for d in days_allowed %}
+        <button type="button" class="chipbtn" aria-pressed="{{ 'true' if d == period.days else 'false' }}"
+            hx-get="/admin/popular/list?days={{ d }}" hx-target="#popular" hx-swap="outerHTML"
+            hx-push-url="/admin/popular?days={{ d }}">{{ d }} days</button>
+        {% endfor %}
+        <span class="range">{{ period|range_label }}</span>
+    </div>
+    <div class="stats">
+        <span class="cell"><span class="cell-l">People</span><span class="cell-v">{{ report.people }}</span></span>
+        <span class="cell"><span class="cell-l">Taps</span><span class="cell-v">{{ report.taps }}</span></span>
+        <span class="cell"><span class="cell-l">Products</span><span class="cell-v">{{ report.product_count }}</span></span>
+    </div>
+    <div class="sec-l">Added to cart<span class="sec-r">taps · vs the {{ period.days }} days before</span></div>
+    {% if report.products %}
+    <div class="prows">
+        {% for p in report.products %}
+        <button type="button" class="prow" hx-get="/admin/popular/{{ p.product_id }}/sheet?days={{ period.days }}" hx-target="#sheet">
+            <span class="rank">{{ loop.index }}</span>
+            <span class="prow-main">
+                <span class="prow-name">{{ p.name }}</span>
+                <span class="prow-sub">{% if p.exists %}₩{{ p.price_won|won }}{% else %}No longer in the shop{% endif %}</span>
+            </span>
+            <span class="vnum">
+                <b>{{ p.taps }}</b>
+                {% if p.is_new %}<span class="pill warn">New</span>
+                {% elif p.change > 0 %}<span class="pill ok"><span class="icon">arrow_upward</span>{{ p.change }}</span>
+                {% elif p.change < 0 %}<span class="pill mute"><span class="icon">arrow_downward</span>{{ -p.change }}</span>
+                {% else %}<span class="pill mute">Same</span>{% endif %}
+            </span>
+        </button>
+        {% endfor %}
+    </div>
+    {% if report.products|length < report.product_count and report.products|length < products_max %}
+    <button type="button" class="more" hx-get="/admin/popular/list?days={{ period.days }}&full=1" hx-target="#popular" hx-swap="outerHTML">
+        Show all {{ report.product_count }} products<span class="icon">expand_more</span>
+    </button>
+    {% elif report.products|length < report.product_count %}
+    <p class="hint">Showing the top {{ report.products|length }} of {{ report.product_count }}.</p>
+    {% endif %}
+    {% else %}
+    <p class="empty"><span class="icon">trending_up</span><b>No taps in the last {{ period.days }} days.</b>Products show here once customers add them to the cart.</p>
+    {% endif %}
+</section>

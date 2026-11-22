@@ -1,0 +1,35 @@
+<div class="veil" onclick="closeSheet()"></div>
+<div class="sheet" role="dialog" aria-label="{{ p.name }}">
+    <div class="grab"></div>
+    <div class="sheet-head">
+        <h3>{{ p.name }}</h3>
+        <button class="icon-btn" type="button" onclick="closeSheet()" aria-label="Close"><span class="icon">close</span></button>
+    </div>
+    <p class="hint">{% if p.exists %}₩{{ p.price_won|won }} · {% endif %}last {{ period.days }} days, {{ period|range_label }}</p>
+    <div class="stats">
+        <span class="cell"><span class="cell-l">People</span><span class="cell-v">{{ p.people }}</span><span class="cell-n">before: {{ p.people_before }}</span></span>
+        <span class="cell"><span class="cell-l">Taps</span><span class="cell-v">{{ p.taps }}</span><span class="cell-n">before: {{ p.taps_before }}</span></span>
+        <span class="cell"><span class="cell-l">Sold</span><span class="cell-v">{{ p.sold_pcs }}</span><span class="cell-n">pieces</span></span>
+    </div>
+    <div class="sec-l">Taps per day</div>
+    <div class="chart">
+        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="Taps per day, at most {{ chart.max_taps }} a day">
+            <line x1="18" x2="{{ chart.width - 2 }}" y1="{{ chart.base_y }}" y2="{{ chart.base_y }}" class="c-axis"></line>
+            <line x1="18" x2="{{ chart.width - 2 }}" y1="{{ chart.top_y }}" y2="{{ chart.top_y }}" class="c-grid"></line>
+            <text x="14" y="{{ chart.top_y + 4 }}" text-anchor="end" class="c-lbl">{{ chart.max_taps }}</text>
+            <text x="14" y="{{ chart.base_y + 4 }}" text-anchor="end" class="c-lbl">0</text>
+            {% for b in chart.bars if b.taps > 0 %}
+            <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.width }}" height="{{ b.height }}" rx="1.5" class="c-bar"></rect>
+            {% if chart.show_values %}<text x="{{ b.center_x }}" y="{{ b.y - 3 }}" text-anchor="middle" class="c-val">{{ b.taps }}</text>{% endif %}
+            {% endfor %}
+            {% for t in chart.ticks %}
+            <text x="{{ t.x }}" y="{{ chart.height - 6 }}" text-anchor="{{ t.anchor }}" class="c-lbl">{{ t.label }}</text>
+            {% endfor %}
+        </svg>
+    </div>
+    {% if p.exists %}
+    <button type="button" class="btn wide" hx-get="/admin/products/{{ p.product_id }}/sheet" hx-target="#sheet"><span class="icon">edit</span>Edit product</button>
+    {% else %}
+    <p class="hint">This product was deleted from the shop.</p>
+    {% endif %}
+</div>

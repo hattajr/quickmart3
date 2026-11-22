@@ -28,6 +28,7 @@ from app.config import (
 )
 from app.db.database import get_db, init_db
 from app.routes import admin as admin_routes
+from app.routes import admin_customers as admin_customer_routes
 from app.routes import admin_invoices as admin_invoice_routes
 from app.routes import cart as cart_routes
 from app.routes import main as main_routes
@@ -105,6 +106,7 @@ app.include_router(cart_routes.router, tags=["cart"])
 app.include_router(products_routes.router, tags=["products"])
 app.include_router(admin_routes.router, tags=["admin"])
 app.include_router(admin_invoice_routes.router, tags=["admin"])
+app.include_router(admin_customer_routes.router, tags=["admin"])
 
 
 if __name__ == "__main__":

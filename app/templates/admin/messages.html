@@ -1,0 +1,21 @@
+{% extends "admin/layout.html" %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+<p class="hint">{{ total }} message{{ 's' if total != 1 }}{% if new_count %}, {{ new_count }} new{% endif %}. They're anonymous, so there's no way to reply.</p>
+{% if days %}
+<div class="bubs">
+    {% for d in days %}
+    <span class="dayhd">{{ d.day|shop_day }}</span>
+    {% for m in d.messages %}
+    <div class="bub">
+        <p>{{ m.text }}</p>
+        <span class="meta">{{ m.sent_at.strftime('%H:%M') }} · {{ m.device }}{% if m.message_id > seen_id %} <span class="pill warn">New</span>{% endif %}</span>
+    </div>
+    {% endfor %}
+    {% endfor %}
+</div>
+{% if shown < total %}<p class="hint">Showing the newest {{ shown }}.</p>{% endif %}
+{% else %}
+<p class="empty"><span class="icon">chat</span><b>No messages yet.</b>Messages customers send from the shop's chat show here.</p>
+{% endif %}
+{% endblock %}
